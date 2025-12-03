@@ -83,3 +83,17 @@ DATABASE_URL=        # PostgreSQL connection (production only)
 SQLITE_PATH=         # Custom SQLite path (optional)
 PORT=3001            # Server port
 ```
+
+## Protected Routes
+
+Some routes require authentication. These are configured server-side and require environment variables to be set in the deployment environment. The repo can be cloned and built without access to protected features - they are not required for core functionality or contributions.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch from `preview`
+3. Make changes and test locally with `npm run dev`
+4. Submit PR to `preview` branch
+5. Changes will be reviewed and merged
+
+Note: Some pages may show placeholder content locally - this is expected for protected demo features.
