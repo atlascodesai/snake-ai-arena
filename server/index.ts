@@ -5,6 +5,7 @@
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import basicAuth from 'express-basic-auth';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { db } from './db.js';
@@ -53,10 +54,23 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Basic auth for /aidemo route (password must be set via AIDEMO_PASSWORD env var)
+const aidemoAuth = basicAuth({
+  users: { 'aidemo': process.env.AIDEMO_PASSWORD || '' },
+  challenge: true,
+  realm: 'AI Demo',
+});
+
 // Serve static files in production
 if (isProduction) {
   // Vite outputs to dist/client in production build
   const clientPath = path.join(__dirname, '..', 'dist', 'client');
+
+  // Protect /aidemo route with basic auth
+  app.get('/aidemo', aidemoAuth, (_req, res) => {
+    res.sendFile(path.join(clientPath, 'index.html'));
+  });
+
   app.use(express.static(clientPath));
 
   // SPA fallback
