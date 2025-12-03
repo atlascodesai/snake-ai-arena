@@ -5,7 +5,7 @@
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import basicAuth from 'express-basic-auth';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { db } from './db.js';
@@ -32,6 +32,7 @@ const submissionLimiter = rateLimit({
 
 // Middleware
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
 // API Routes - apply rate limiter to POST submissions
@@ -54,22 +55,46 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Basic auth for /aidemo route (password must be set via AIDEMO_PASSWORD env var)
-const aidemoAuth = basicAuth({
-  users: { 'aidemo': process.env.AIDEMO_PASSWORD || '' },
-  challenge: true,
-  realm: 'AI Demo',
+// Simple password check middleware for /aidemo route
+const aidemoPassword = process.env.AIDEMO_PASSWORD || '';
+const aidemoSessions = new Set<string>();
+
+function checkAidemoAuth(req: any, res: any, next: any) {
+  const sessionId = req.cookies?.aidemo_session;
+  if (sessionId && aidemoSessions.has(sessionId)) {
+    return next();
+  }
+  // Not authenticated - serve login page or check password
+  if (req.method === 'POST' && req.body?.password === aidemoPassword) {
+    const newSession = Math.random().toString(36).substring(2);
+    aidemoSessions.add(newSession);
+    res.cookie('aidemo_session', newSession, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+    return res.json({ success: true });
+  }
+  next();
+}
+
+// API endpoint for aidemo password check
+app.post('/api/aidemo/auth', (req, res) => {
+  if (req.body?.password === aidemoPassword && aidemoPassword) {
+    const newSession = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    aidemoSessions.add(newSession);
+    res.cookie('aidemo_session', newSession, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
+    return res.json({ success: true });
+  }
+  res.status(401).json({ success: false, error: 'Invalid password' });
+});
+
+app.get('/api/aidemo/check', (req, res) => {
+  const sessionId = req.cookies?.aidemo_session;
+  const authenticated = sessionId && aidemoSessions.has(sessionId);
+  res.json({ authenticated });
 });
 
 // Serve static files in production
 if (isProduction) {
   // Vite outputs to dist/client in production build
   const clientPath = path.join(__dirname, '..', 'dist', 'client');
-
-  // Protect /aidemo route with basic auth
-  app.get('/aidemo', aidemoAuth, (_req, res) => {
-    res.sendFile(path.join(clientPath, 'index.html'));
-  });
 
   app.use(express.static(clientPath));
 
