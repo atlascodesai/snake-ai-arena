@@ -1,9 +1,38 @@
 /**
  * AI Demo Page - Password Protected
- * This is a placeholder. Private content is loaded separately.
+ * Content is loaded from private submodule when available.
  */
 
 import { useState, useEffect } from 'react';
+
+// Try to import private content, fallback to null if submodule not present
+let PrivateContent: typeof import('../private/AIDemoContent').AIDemoContent | null = null;
+try {
+  // Dynamic import would be cleaner but static works for build-time check
+  PrivateContent = require('../private/AIDemoContent').AIDemoContent;
+} catch {
+  PrivateContent = null;
+}
+
+// Fallback content when private submodule is not available
+const fallbackContent = {
+  overview: {
+    title: "Private Demo",
+    description: "This demo requires the private content module to be installed.",
+    cards: [] as { icon: string; title: string; desc: string }[]
+  },
+  demo: {
+    title: "Demo Unavailable",
+    description: "Private content module not installed."
+  },
+  docs: {
+    title: "Documentation",
+    description: "Documentation requires the private content module.",
+    items: [] as string[]
+  }
+};
+
+const content = PrivateContent || fallbackContent;
 
 export default function AIDemo() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -128,50 +157,48 @@ export default function AIDemo() {
         {activeTab === 'overview' && (
           <div className="space-y-8">
             <div className="bg-dark-800 rounded-xl p-8 border border-dark-700">
-              <h2 className="text-2xl font-bold text-white mb-4">Welcome to AI Demo</h2>
+              <h2 className="text-2xl font-bold text-white mb-4">{content.overview.title}</h2>
               <p className="text-gray-400 leading-relaxed">
-                This is a protected demo environment for showcasing AI capabilities.
-                Content on this page is private and requires authentication to access.
+                {content.overview.description}
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {[
-                { icon: '⚡', title: 'Fast', desc: 'Real-time AI responses' },
-                { icon: '🔒', title: 'Secure', desc: 'Password protected access' },
-                { icon: '🎯', title: 'Focused', desc: 'Tailored demonstrations' },
-              ].map((card) => (
-                <div key={card.title} className="bg-dark-800 rounded-xl p-6 border border-dark-700">
-                  <span className="text-3xl">{card.icon}</span>
-                  <h3 className="text-lg font-semibold text-white mt-3">{card.title}</h3>
-                  <p className="text-gray-500 text-sm mt-1">{card.desc}</p>
-                </div>
-              ))}
-            </div>
+            {content.overview.cards.length > 0 && (
+              <div className="grid md:grid-cols-3 gap-6">
+                {content.overview.cards.map((card) => (
+                  <div key={card.title} className="bg-dark-800 rounded-xl p-6 border border-dark-700">
+                    <span className="text-3xl">{card.icon}</span>
+                    <h3 className="text-lg font-semibold text-white mt-3">{card.title}</h3>
+                    <p className="text-gray-500 text-sm mt-1">{card.desc}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'demo' && (
           <div className="bg-dark-800 rounded-xl p-8 border border-dark-700 text-center">
             <span className="text-6xl">🎮</span>
-            <h2 className="text-2xl font-bold text-white mt-4">Demo Area</h2>
-            <p className="text-gray-400 mt-2">Interactive demonstrations will appear here.</p>
+            <h2 className="text-2xl font-bold text-white mt-4">{content.demo.title}</h2>
+            <p className="text-gray-400 mt-2">{content.demo.description}</p>
           </div>
         )}
 
         {activeTab === 'docs' && (
           <div className="bg-dark-800 rounded-xl p-8 border border-dark-700">
-            <h2 className="text-2xl font-bold text-white mb-4">Documentation</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">{content.docs.title}</h2>
             <div className="prose prose-invert">
               <p className="text-gray-400">
-                Technical documentation and API references for the demo features.
+                {content.docs.description}
               </p>
-              <ul className="text-gray-400 mt-4 space-y-2">
-                <li>• Getting started guide</li>
-                <li>• API reference</li>
-                <li>• Integration examples</li>
-                <li>• Best practices</li>
-              </ul>
+              {content.docs.items.length > 0 && (
+                <ul className="text-gray-400 mt-4 space-y-2">
+                  {content.docs.items.map((item, i) => (
+                    <li key={i}>• {item}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         )}
