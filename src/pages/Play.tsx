@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Position, Direction, GameState } from '../game/types';
@@ -33,6 +33,65 @@ function transformDirectionForCamera(dir: Direction, cameraAngle: number): Direc
   const newZ = dir.x * sin + dir.z * cos;
 
   return { x: newX, y: 0, z: newZ };
+}
+
+// First-person controls: pitch and yaw relative to snake's orientation
+// We track the snake's "up" vector to maintain consistent orientation
+// - Pitch up/down: rotate in the plane containing forward and up
+// - Yaw left/right: rotate in the plane perpendicular to up (horizontal turn)
+function getFirstPersonDirection(
+  input: 'up' | 'down' | 'left' | 'right',
+  snakeDirection: Direction,
+  snakeUp: Direction
+): Direction {
+  const forward = snakeDirection;
+  const up = snakeUp;
+
+  // Calculate right vector (cross product of forward and up)
+  const right: Direction = {
+    x: forward.y * up.z - forward.z * up.y,
+    y: forward.z * up.x - forward.x * up.z,
+    z: forward.x * up.y - forward.y * up.x,
+  };
+
+  switch (input) {
+    case 'up':
+      // Pitch up: move in the "up" direction relative to snake
+      return up;
+    case 'down':
+      // Pitch down: move in the "down" direction relative to snake
+      return { x: -up.x, y: -up.y, z: -up.z };
+    case 'left':
+      // Yaw left: turn left (negative right direction)
+      return { x: -right.x, y: -right.y, z: -right.z };
+    case 'right':
+      // Yaw right: turn right
+      return right;
+  }
+}
+
+// Calculate new "up" vector after a direction change
+// This maintains consistent orientation for the camera and controls
+function getNewUpVector(oldDirection: Direction, newDirection: Direction, oldUp: Direction): Direction {
+  // If direction didn't change, up stays the same
+  if (oldDirection.x === newDirection.x &&
+      oldDirection.y === newDirection.y &&
+      oldDirection.z === newDirection.z) {
+    return oldUp;
+  }
+
+  // If we pitched (up/down changed), the old forward becomes the new up (or negative)
+  if (newDirection.x === oldUp.x && newDirection.y === oldUp.y && newDirection.z === oldUp.z) {
+    // Pitched up: old forward direction becomes down, so new up is negative old forward
+    return { x: -oldDirection.x, y: -oldDirection.y, z: -oldDirection.z };
+  }
+  if (newDirection.x === -oldUp.x && newDirection.y === -oldUp.y && newDirection.z === -oldUp.z) {
+    // Pitched down: old forward direction becomes up
+    return oldDirection;
+  }
+
+  // If we yawed (left/right), up stays the same
+  return oldUp;
 }
 
 // Control scheme definitions
@@ -146,6 +205,76 @@ function Food({ position }: { position: Position }) {
   );
 }
 
+// Firework particle
+interface FireworkParticle {
+  position: THREE.Vector3;
+  velocity: THREE.Vector3;
+  color: string;
+  life: number;
+  maxLife: number;
+}
+
+// Fireworks effect component
+function Fireworks({ trigger, position }: { trigger: number; position: Position }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const particlesRef = useRef<FireworkParticle[]>([]);
+  const lastTriggerRef = useRef(0);
+
+  const colors = ['#ff0088', '#00ff88', '#00ffff', '#ffff00', '#ff00ff', '#ffffff'];
+
+  useFrame((_, delta) => {
+    // Spawn new particles when trigger changes
+    if (trigger !== lastTriggerRef.current && trigger > 0) {
+      lastTriggerRef.current = trigger;
+      const centerPos = new THREE.Vector3(position.x * 2, position.y * 2, position.z * 2);
+
+      // Create burst of particles
+      for (let i = 0; i < 30; i++) {
+        const angle1 = Math.random() * Math.PI * 2;
+        const angle2 = Math.random() * Math.PI - Math.PI / 2;
+        const speed = 8 + Math.random() * 12;
+
+        particlesRef.current.push({
+          position: centerPos.clone(),
+          velocity: new THREE.Vector3(
+            Math.cos(angle1) * Math.cos(angle2) * speed,
+            Math.sin(angle2) * speed + 5,
+            Math.sin(angle1) * Math.cos(angle2) * speed
+          ),
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 1,
+          maxLife: 0.8 + Math.random() * 0.4,
+        });
+      }
+    }
+
+    // Update particles
+    particlesRef.current = particlesRef.current.filter(p => {
+      p.life -= delta / p.maxLife;
+      p.velocity.y -= 15 * delta; // Gravity
+      p.position.add(p.velocity.clone().multiplyScalar(delta));
+      return p.life > 0;
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      {particlesRef.current.map((particle, i) => (
+        <mesh key={i} position={particle.position}>
+          <sphereGeometry args={[0.15, 8, 8]} />
+          <meshStandardMaterial
+            color={particle.color}
+            emissive={particle.color}
+            emissiveIntensity={particle.life * 2}
+            transparent
+            opacity={particle.life}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 // Grid cage
 function GridCage() {
   const size = GRID_SIZE * 2;
@@ -175,7 +304,7 @@ function GridCage() {
   );
 }
 
-// Camera controller with optional auto-rotation
+// Camera controller with optional auto-rotation (orbit mode)
 function CameraController({
   autoRotate,
   onAngleChange
@@ -187,7 +316,6 @@ function CameraController({
 
   useFrame(() => {
     if (controlsRef.current && onAngleChange) {
-      // Get azimuthal angle (horizontal rotation around Y axis)
       const angle = controlsRef.current.getAzimuthalAngle();
       onAngleChange(angle);
     }
@@ -205,15 +333,75 @@ function CameraController({
   );
 }
 
+// First-person camera that follows the snake head - positioned at the eyes looking forward
+function FirstPersonCamera({
+  snakeHead,
+  lastDirection,
+  snakeUp,
+}: {
+  snakeHead: Position;
+  lastDirection: Direction;
+  snakeUp: Direction;
+}) {
+  const { camera } = useThree();
+  const smoothPosition = useRef(new THREE.Vector3());
+  const smoothTarget = useRef(new THREE.Vector3());
+  const smoothUp = useRef(new THREE.Vector3(0, 1, 0));
+
+  useFrame(() => {
+    const dir = lastDirection;
+
+    // Position camera at the snake head (at the "eyes")
+    const headPos = new THREE.Vector3(
+      snakeHead.x * 2,
+      snakeHead.y * 2,
+      snakeHead.z * 2
+    );
+
+    // Look direction is the snake's movement direction
+    const lookDir = new THREE.Vector3(dir.x, dir.y, dir.z).normalize();
+
+    // Up vector comes from the tracked snake orientation
+    const targetUp = new THREE.Vector3(snakeUp.x, snakeUp.y, snakeUp.z);
+
+    // Camera position: slightly forward from head center (at the "eyes")
+    const targetCameraPos = headPos.clone().add(lookDir.clone().multiplyScalar(0.5));
+
+    // Look at point: far ahead in the direction of travel
+    const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(20));
+
+    // Smooth interpolation for fluid camera movement
+    smoothPosition.current.lerp(targetCameraPos, 0.15);
+    smoothTarget.current.lerp(targetLookAt, 0.15);
+    smoothUp.current.lerp(targetUp, 0.15);
+
+    camera.position.copy(smoothPosition.current);
+    camera.up.copy(smoothUp.current);
+    camera.lookAt(smoothTarget.current);
+  });
+
+  return null;
+}
+
 // Scene component
 function Scene({
   gameState,
   autoRotate,
-  onCameraAngleChange
+  onCameraAngleChange,
+  isFirstPerson,
+  lastDirection,
+  snakeUp,
+  fireworkTrigger,
+  fireworkPosition,
 }: {
   gameState: GameState;
   autoRotate: boolean;
   onCameraAngleChange?: (angle: number) => void;
+  isFirstPerson: boolean;
+  lastDirection: Direction;
+  snakeUp: Direction;
+  fireworkTrigger: number;
+  fireworkPosition: Position;
 }) {
   return (
     <>
@@ -226,17 +414,29 @@ function Scene({
         <SnakeSegment key={index} position={segment} isHead={index === 0} />
       ))}
       <Food position={gameState.food} />
-      <CameraController autoRotate={autoRotate} onAngleChange={onCameraAngleChange} />
+      <Fireworks trigger={fireworkTrigger} position={fireworkPosition} />
+      {isFirstPerson ? (
+        <FirstPersonCamera
+          snakeHead={gameState.snake[0]}
+          lastDirection={lastDirection}
+          snakeUp={snakeUp}
+        />
+      ) : (
+        <CameraController autoRotate={autoRotate} onAngleChange={onCameraAngleChange} />
+      )}
     </>
   );
 }
 
 export default function Play() {
   const navigate = useNavigate();
-  const { playWin, playWhammy, playTick } = useAudio();
+  const { playWin, playWhammy } = useAudio();
   const [autoRotate, setAutoRotate] = useState(true);
   const [viewRelativeControls, setViewRelativeControls] = useState(true);
+  const [isFirstPerson, setIsFirstPerson] = useState(false);
   const cameraAngleRef = useRef(0);
+  const [fireworkTrigger, setFireworkTrigger] = useState(0);
+  const [fireworkPosition, setFireworkPosition] = useState<Position>({ x: 0, y: 0, z: 0 });
   const [gameState, setGameState] = useState<GameState>({
     snake: [
       { x: 0, y: 0, z: 0 },
@@ -262,6 +462,7 @@ export default function Play() {
 
   const directionRef = useRef<Direction | null>(null);
   const lastDirectionRef = useRef<Direction>({ x: 1, y: 0, z: 0 });
+  const snakeUpRef = useRef<Direction>({ x: 0, y: 1, z: 0 }); // Track snake's "up" for FPV orientation
   const gameLoopRef = useRef<number | null>(null);
 
   // Spawn food at random position
@@ -271,7 +472,6 @@ export default function Play() {
     let pos: Position;
     let attempts = 0;
 
-    // Try random positions first (fast path)
     do {
       pos = {
         x: Math.floor(Math.random() * GRID_SIZE) - HALF,
@@ -281,7 +481,6 @@ export default function Play() {
       attempts++;
     } while (occupied.has(`${pos.x},${pos.y},${pos.z}`) && attempts < 1000);
 
-    // If random failed, scan systematically for any free cell
     if (occupied.has(`${pos.x},${pos.y},${pos.z}`)) {
       for (let x = -HALF; x < HALF; x++) {
         for (let y = -HALF; y < HALF; y++) {
@@ -293,7 +492,6 @@ export default function Play() {
           }
         }
       }
-      // Grid is completely full - shouldn't happen in normal gameplay
     }
 
     return pos;
@@ -316,7 +514,7 @@ export default function Play() {
     });
     directionRef.current = null;
     lastDirectionRef.current = { x: 1, y: 0, z: 0 };
-    // Reset submission state
+    snakeUpRef.current = { x: 0, y: 1, z: 0 };
     setShowNameInput(false);
     setPlayerName('');
     setSubmitResult(null);
@@ -348,7 +546,6 @@ export default function Play() {
 
   // Set direction (queue it for next tick)
   const setDirection = useCallback((dir: Direction) => {
-    // Prevent 180 degree turns
     const last = lastDirectionRef.current;
     if (dir.x === -last.x && dir.y === -last.y && dir.z === -last.z) {
       return;
@@ -365,20 +562,26 @@ export default function Play() {
     }
   }, [setDirection, viewRelativeControls]);
 
+  // Set direction for first-person view (pitch/yaw relative to snake orientation)
+  const setFirstPersonDirection = useCallback((input: 'up' | 'down' | 'left' | 'right') => {
+    const newDir = getFirstPersonDirection(input, lastDirectionRef.current, snakeUpRef.current);
+    setDirection(newDir);
+  }, [setDirection]);
+
   // Game loop
   useEffect(() => {
     const tick = () => {
       setGameState(prev => {
         if (prev.gameOver) return prev;
 
-        // Use queued direction or continue in last direction
         const dir = directionRef.current || lastDirectionRef.current;
         if (directionRef.current) {
+          // Update the "up" vector based on direction change (for FPV camera orientation)
+          snakeUpRef.current = getNewUpVector(lastDirectionRef.current, directionRef.current, snakeUpRef.current);
           lastDirectionRef.current = directionRef.current;
           directionRef.current = null;
         }
 
-        // Calculate new head position
         const head = prev.snake[0];
         const newHead = wrapPosition({
           x: head.x + dir.x,
@@ -386,20 +589,19 @@ export default function Play() {
           z: head.z + dir.z,
         });
 
-        // Check collision with body
         const hitBody = prev.snake.slice(1).some(seg => posEqual(seg, newHead));
         if (hitBody) {
           playWhammy();
           return { ...prev, gameOver: true, deathReason: 'Hit own body' };
         }
 
-        // Check if eating food
         const eating = posEqual(newHead, prev.food);
         if (eating) {
           playWin();
+          setFireworkPosition(prev.food);
+          setFireworkTrigger(t => t + 1);
         }
 
-        // Build new snake
         const newSnake = [newHead, ...prev.snake];
         if (!eating) {
           newSnake.pop();
@@ -426,7 +628,6 @@ export default function Play() {
     const scheme = CONTROL_SCHEMES[controlType];
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip game controls when typing in name input
       if (showNameInput && !submitResult) {
         if (e.key === 'Escape') {
           setShowNameInput(false);
@@ -434,7 +635,6 @@ export default function Play() {
         return;
       }
 
-      // Game over - can restart or submit
       if (gameState.gameOver) {
         if (e.key === ' ' || e.key === 'Enter') {
           if (submitResult) {
@@ -449,36 +649,47 @@ export default function Play() {
         return;
       }
 
-      // Helper to apply view-relative transformation
-      const applyDirection = (dir: Direction) => {
-        if (viewRelativeControls && dir.y === 0) {
-          setDirection(transformDirectionForCamera(dir, cameraAngleRef.current));
-        } else {
-          setDirection(dir);
+      if (isFirstPerson) {
+        // First-person controls: all relative to snake's POV (pitch/yaw)
+        // Up = pitch up, Down = pitch down, Left = yaw left, Right = yaw right
+        if (scheme.xzKeys.up.includes(e.key)) {
+          setFirstPersonDirection('up');
+        } else if (scheme.xzKeys.down.includes(e.key)) {
+          setFirstPersonDirection('down');
+        } else if (scheme.xzKeys.left.includes(e.key)) {
+          setFirstPersonDirection('left');
+        } else if (scheme.xzKeys.right.includes(e.key)) {
+          setFirstPersonDirection('right');
         }
-      };
+      } else {
+        // Orbit view controls
+        const applyDirection = (dir: Direction) => {
+          if (viewRelativeControls && dir.y === 0) {
+            setDirection(transformDirectionForCamera(dir, cameraAngleRef.current));
+          } else {
+            setDirection(dir);
+          }
+        };
 
-      // XZ plane movement
-      if (scheme.xzKeys.up.includes(e.key)) {
-        applyDirection({ x: 0, y: 0, z: -1 });
-      } else if (scheme.xzKeys.down.includes(e.key)) {
-        applyDirection({ x: 0, y: 0, z: 1 });
-      } else if (scheme.xzKeys.left.includes(e.key)) {
-        applyDirection({ x: -1, y: 0, z: 0 });
-      } else if (scheme.xzKeys.right.includes(e.key)) {
-        applyDirection({ x: 1, y: 0, z: 0 });
-      }
-      // Y axis movement (not affected by view-relative)
-      else if (scheme.yKeys.up.includes(e.key)) {
-        setDirection({ x: 0, y: 1, z: 0 });
-      } else if (scheme.yKeys.down.includes(e.key)) {
-        setDirection({ x: 0, y: -1, z: 0 });
+        if (scheme.xzKeys.up.includes(e.key)) {
+          applyDirection({ x: 0, y: 0, z: -1 });
+        } else if (scheme.xzKeys.down.includes(e.key)) {
+          applyDirection({ x: 0, y: 0, z: 1 });
+        } else if (scheme.xzKeys.left.includes(e.key)) {
+          applyDirection({ x: -1, y: 0, z: 0 });
+        } else if (scheme.xzKeys.right.includes(e.key)) {
+          applyDirection({ x: 1, y: 0, z: 0 });
+        } else if (scheme.yKeys.up.includes(e.key)) {
+          setDirection({ x: 0, y: 1, z: 0 });
+        } else if (scheme.yKeys.down.includes(e.key)) {
+          setDirection({ x: 0, y: -1, z: 0 });
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState.gameOver, resetGame, setDirection, showNameInput, submitResult, controlType, viewRelativeControls]);
+  }, [gameState.gameOver, resetGame, setDirection, setFirstPersonDirection, showNameInput, submitResult, controlType, viewRelativeControls, isFirstPerson]);
 
   return (
     <div className="fixed inset-0 bg-dark-900 flex flex-col">
@@ -540,7 +751,9 @@ export default function Play() {
             <span className="text-2xl">🐍</span>
             <div>
               <h1 className="text-base font-bold text-white">Manual Play</h1>
-              <p className="text-xs text-gray-400 hidden sm:block">{CONTROL_SCHEMES[controlType].hint} controls</p>
+              <p className="text-xs text-gray-400 hidden sm:block">
+                {isFirstPerson ? 'First-person view' : `${CONTROL_SCHEMES[controlType].hint} controls`}
+              </p>
             </div>
           </div>
 
@@ -602,6 +815,11 @@ export default function Play() {
               gameState={gameState}
               autoRotate={autoRotate}
               onCameraAngleChange={(angle) => { cameraAngleRef.current = angle; }}
+              isFirstPerson={isFirstPerson}
+              lastDirection={lastDirectionRef.current}
+              snakeUp={snakeUpRef.current}
+              fireworkTrigger={fireworkTrigger}
+              fireworkPosition={fireworkPosition}
             />
           </Canvas>
 
@@ -619,35 +837,55 @@ export default function Play() {
 
           {/* Control toggles - bottom right */}
           <div className="absolute bottom-4 right-4 flex gap-2">
-            {/* View-relative toggle */}
+            {/* First-person view toggle */}
             <button
-              onClick={() => setViewRelativeControls(!viewRelativeControls)}
+              onClick={() => setIsFirstPerson(!isFirstPerson)}
               className={`p-2 rounded-lg border transition-colors ${
-                viewRelativeControls
-                  ? 'bg-neon-blue/20 border-neon-blue text-neon-blue'
+                isFirstPerson
+                  ? 'bg-neon-pink/20 border-neon-pink text-neon-pink'
                   : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
               }`}
-              title={viewRelativeControls ? 'View-relative controls (ON)' : 'Absolute controls (OFF)'}
+              title={isFirstPerson ? 'Switch to orbit view' : 'Switch to first-person view'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </button>
 
-            {/* Rotation toggle */}
-            <button
-              onClick={() => setAutoRotate(!autoRotate)}
-              className={`p-2 rounded-lg border transition-colors ${
-                autoRotate
-                  ? 'bg-neon-green/20 border-neon-green text-neon-green'
-                  : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
-              }`}
-              title={autoRotate ? 'Stop rotation' : 'Start rotation'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+            {/* View-relative toggle - only shown in orbit view */}
+            {!isFirstPerson && (
+              <button
+                onClick={() => setViewRelativeControls(!viewRelativeControls)}
+                className={`p-2 rounded-lg border transition-colors ${
+                  viewRelativeControls
+                    ? 'bg-neon-blue/20 border-neon-blue text-neon-blue'
+                    : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
+                }`}
+                title={viewRelativeControls ? 'View-relative controls (ON)' : 'Absolute controls (OFF)'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Rotation toggle - only shown in orbit view */}
+            {!isFirstPerson && (
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                className={`p-2 rounded-lg border transition-colors ${
+                  autoRotate
+                    ? 'bg-neon-green/20 border-neon-green text-neon-green'
+                    : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
+                }`}
+                title={autoRotate ? 'Stop rotation' : 'Start rotation'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Game over overlay */}
@@ -658,7 +896,6 @@ export default function Play() {
                 <div className="text-gray-400 mb-2">{gameState.deathReason}</div>
                 <div className="text-2xl text-neon-green mb-4">Final Score: {gameState.score}</div>
 
-                {/* Submit result display */}
                 {submitResult && (
                   <div className="mb-4 bg-dark-800 rounded-lg p-4 border border-neon-green">
                     <div className="text-neon-green font-bold text-lg mb-1">Score Submitted!</div>
@@ -667,7 +904,6 @@ export default function Play() {
                   </div>
                 )}
 
-                {/* Name input mode */}
                 {showNameInput && !submitResult && (
                   <div className="mb-4">
                     <div className="text-gray-300 text-sm mb-3">Enter your name:</div>
@@ -706,7 +942,6 @@ export default function Play() {
                   </div>
                 )}
 
-                {/* Action buttons */}
                 {!showNameInput && (
                   <div className="flex flex-col gap-2 items-center">
                     {!submitResult && gameState.score > 0 && (
@@ -741,12 +976,20 @@ export default function Play() {
           <div className="w-full max-w-[280px]">
             {/* Main controls area - D-pad left, A/B right */}
             <div className="flex justify-between items-center">
-              {/* D-Pad (left side) - XZ movement */}
+              {/* D-Pad - In FPV: all 4 directions for pitch/yaw. In orbit: XZ movement */}
               <div className="flex flex-col items-center">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Move</div>
+                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">
+                  {isFirstPerson ? 'Pitch/Turn' : 'Move'}
+                </div>
                 <div className="flex flex-col items-center gap-1">
                   <button
-                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: -1 })}
+                    onPointerDown={() => {
+                      if (isFirstPerson) {
+                        setFirstPersonDirection('up');
+                      } else {
+                        setDirectionWithViewTransform({ x: 0, y: 0, z: -1 });
+                      }
+                    }}
                     className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -755,7 +998,13 @@ export default function Play() {
                   </button>
                   <div className="flex gap-1">
                     <button
-                      onPointerDown={() => setDirectionWithViewTransform({ x: -1, y: 0, z: 0 })}
+                      onPointerDown={() => {
+                        if (isFirstPerson) {
+                          setFirstPersonDirection('left');
+                        } else {
+                          setDirectionWithViewTransform({ x: -1, y: 0, z: 0 });
+                        }
+                      }}
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -766,7 +1015,13 @@ export default function Play() {
                       <div className="w-2.5 h-2.5 bg-dark-600 rounded-full" />
                     </div>
                     <button
-                      onPointerDown={() => setDirectionWithViewTransform({ x: 1, y: 0, z: 0 })}
+                      onPointerDown={() => {
+                        if (isFirstPerson) {
+                          setFirstPersonDirection('right');
+                        } else {
+                          setDirectionWithViewTransform({ x: 1, y: 0, z: 0 });
+                        }
+                      }}
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -775,7 +1030,13 @@ export default function Play() {
                     </button>
                   </div>
                   <button
-                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: 1 })}
+                    onPointerDown={() => {
+                      if (isFirstPerson) {
+                        setFirstPersonDirection('down');
+                      } else {
+                        setDirectionWithViewTransform({ x: 0, y: 0, z: 1 });
+                      }
+                    }}
                     className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -785,39 +1046,46 @@ export default function Play() {
                 </div>
               </div>
 
-              {/* Y-axis Buttons (right side, offset) */}
-              <div className="flex flex-col items-center">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Up/Down</div>
-                <div className="flex gap-3 -rotate-12">
-                  {/* Down button - lower left */}
-                  <div className="flex flex-col items-center mt-6">
-                    <button
-                      onPointerDown={() => setDirection({ x: 0, y: -1, z: 0 })}
-                      className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-pink/30 border-2 border-dark-500 active:border-neon-pink rounded-full flex items-center justify-center text-gray-300 active:text-neon-pink transition-colors select-none shadow-lg"
-                    >
-                      <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.down[0].toUpperCase()}</span>
-                    </button>
-                    <span className="text-[9px] text-gray-500 mt-1 rotate-12">Down</span>
-                  </div>
-                  {/* Up button - upper right */}
-                  <div className="flex flex-col items-center">
-                    <button
-                      onPointerDown={() => setDirection({ x: 0, y: 1, z: 0 })}
-                      className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-blue/30 border-2 border-dark-500 active:border-neon-blue rounded-full flex items-center justify-center text-gray-300 active:text-neon-blue transition-colors select-none shadow-lg"
-                    >
-                      <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.up[0].toUpperCase()}</span>
-                    </button>
-                    <span className="text-[9px] text-gray-500 mt-1 rotate-12">Up</span>
+              {/* Y-axis Buttons - only shown in orbit view */}
+              {!isFirstPerson && (
+                <div className="flex flex-col items-center">
+                  <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Up/Down</div>
+                  <div className="flex gap-3 -rotate-12">
+                    {/* Down button - lower left */}
+                    <div className="flex flex-col items-center mt-6">
+                      <button
+                        onPointerDown={() => setDirection({ x: 0, y: -1, z: 0 })}
+                        className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-pink/30 border-2 border-dark-500 active:border-neon-pink rounded-full flex items-center justify-center text-gray-300 active:text-neon-pink transition-colors select-none shadow-lg"
+                      >
+                        <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.down[0].toUpperCase()}</span>
+                      </button>
+                      <span className="text-[9px] text-gray-500 mt-1 rotate-12">Down</span>
+                    </div>
+                    {/* Up button - upper right */}
+                    <div className="flex flex-col items-center">
+                      <button
+                        onPointerDown={() => setDirection({ x: 0, y: 1, z: 0 })}
+                        className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-blue/30 border-2 border-dark-500 active:border-neon-blue rounded-full flex items-center justify-center text-gray-300 active:text-neon-blue transition-colors select-none shadow-lg"
+                      >
+                        <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.up[0].toUpperCase()}</span>
+                      </button>
+                      <span className="text-[9px] text-gray-500 mt-1 rotate-12">Up</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Keyboard hint */}
             <div className="mt-6 text-center">
               <div className="text-[10px] text-gray-600 bg-dark-900/50 rounded px-3 py-2 inline-block">
                 <span className="text-gray-500">Keys:</span>{' '}
-                <span className="text-gray-400">{CONTROL_SCHEMES[controlType].hint}</span>
+                <span className="text-gray-400">
+                  {isFirstPerson
+                    ? `${CONTROL_SCHEMES[controlType].xzKeys.up[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.down[0].toUpperCase()} pitch, ${CONTROL_SCHEMES[controlType].xzKeys.left[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.right[0].toUpperCase()} turn`
+                    : CONTROL_SCHEMES[controlType].hint
+                  }
+                </span>
               </div>
             </div>
           </div>
