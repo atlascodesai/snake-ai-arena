@@ -338,10 +338,12 @@ function FirstPersonCamera({
   snakeHead,
   lastDirection,
   snakeUp,
+  fov,
 }: {
   snakeHead: Position;
   lastDirection: Direction;
   snakeUp: Direction;
+  fov: number;
 }) {
   const { camera } = useThree();
   const smoothPosition = useRef(new THREE.Vector3());
@@ -364,11 +366,12 @@ function FirstPersonCamera({
     // Up vector comes from the tracked snake orientation
     const targetUp = new THREE.Vector3(snakeUp.x, snakeUp.y, snakeUp.z);
 
-    // Camera position: slightly forward from head center (at the "eyes")
-    const targetCameraPos = headPos.clone().add(lookDir.clone().multiplyScalar(0.5));
+    // Camera position: at front of head, offset forward to avoid clipping into snake geometry
+    // Snake head is 1.8 units wide, so we need at least 1.5 units forward offset
+    const targetCameraPos = headPos.clone().add(lookDir.clone().multiplyScalar(1.5));
 
     // Look at point: far ahead in the direction of travel
-    const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(20));
+    const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(50));
 
     // Smooth interpolation for fluid camera movement
     smoothPosition.current.lerp(targetCameraPos, 0.15);
@@ -378,6 +381,12 @@ function FirstPersonCamera({
     camera.position.copy(smoothPosition.current);
     camera.up.copy(smoothUp.current);
     camera.lookAt(smoothTarget.current);
+
+    // Update FOV for zoom
+    if ((camera as THREE.PerspectiveCamera).fov !== fov) {
+      (camera as THREE.PerspectiveCamera).fov = fov;
+      (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
+    }
   });
 
   return null;
@@ -393,6 +402,7 @@ function Scene({
   snakeUp,
   fireworkTrigger,
   fireworkPosition,
+  fpvFov,
 }: {
   gameState: GameState;
   autoRotate: boolean;
@@ -402,6 +412,7 @@ function Scene({
   snakeUp: Direction;
   fireworkTrigger: number;
   fireworkPosition: Position;
+  fpvFov: number;
 }) {
   return (
     <>
@@ -420,6 +431,7 @@ function Scene({
           snakeHead={gameState.snake[0]}
           lastDirection={lastDirection}
           snakeUp={snakeUp}
+          fov={fpvFov}
         />
       ) : (
         <CameraController autoRotate={autoRotate} onAngleChange={onCameraAngleChange} />
@@ -434,6 +446,7 @@ export default function Play() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [viewRelativeControls, setViewRelativeControls] = useState(true);
   const [isFirstPerson, setIsFirstPerson] = useState(false);
+  const [fpvFov, setFpvFov] = useState(90); // First-person view FOV (wider = zoomed out)
   const cameraAngleRef = useRef(0);
   const [fireworkTrigger, setFireworkTrigger] = useState(0);
   const [fireworkPosition, setFireworkPosition] = useState<Position>({ x: 0, y: 0, z: 0 });
@@ -820,6 +833,7 @@ export default function Play() {
               snakeUp={snakeUpRef.current}
               fireworkTrigger={fireworkTrigger}
               fireworkPosition={fireworkPosition}
+              fpvFov={fpvFov}
             />
           </Canvas>
 
@@ -837,6 +851,31 @@ export default function Play() {
 
           {/* Control toggles - bottom right */}
           <div className="absolute bottom-4 right-4 flex gap-2">
+            {/* FOV zoom controls - only shown in first-person view */}
+            {isFirstPerson && (
+              <div className="flex items-center gap-1 bg-dark-800/90 rounded-lg border border-dark-600 px-1">
+                <button
+                  onClick={() => setFpvFov(f => Math.min(120, f + 10))}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Zoom out (wider FOV)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </button>
+                <span className="text-xs text-gray-500 w-8 text-center">{fpvFov}°</span>
+                <button
+                  onClick={() => setFpvFov(f => Math.max(40, f - 10))}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Zoom in (narrower FOV)"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
             {/* First-person view toggle */}
             <button
               onClick={() => setIsFirstPerson(!isFirstPerson)}
