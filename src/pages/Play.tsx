@@ -240,15 +240,24 @@ function CameraController({
   );
 }
 
+// FOV presets for first-person view
+const FOV_PRESETS = {
+  min: 30,
+  default: 70,
+  max: 110,
+};
+
 // First-person camera that follows the snake head
 function FirstPersonCamera({
   snakeHead,
   snakeNeck,
   lastDirection,
+  fov,
 }: {
   snakeHead: Position;
   snakeNeck: Position | null;
   lastDirection: Direction;
+  fov: number;
 }) {
   const { camera } = useThree();
   const smoothPosition = useRef(new THREE.Vector3());
@@ -256,6 +265,12 @@ function FirstPersonCamera({
   const smoothUp = useRef(new THREE.Vector3(0, 1, 0));
 
   useFrame(() => {
+    // Update FOV
+    if ((camera as THREE.PerspectiveCamera).fov !== fov) {
+      (camera as THREE.PerspectiveCamera).fov = fov;
+      (camera as THREE.PerspectiveCamera).updateProjectionMatrix();
+    }
+
     // Calculate the direction the snake is moving
     const dir = lastDirection;
 
@@ -396,12 +411,14 @@ function Scene({
   onCameraAngleChange,
   isFirstPerson,
   lastDirection,
+  fov,
 }: {
   gameState: GameState;
   autoRotate: boolean;
   onCameraAngleChange?: (angle: number) => void;
   isFirstPerson: boolean;
   lastDirection: Direction;
+  fov: number;
 }) {
   return (
     <>
@@ -420,6 +437,7 @@ function Scene({
             snakeHead={gameState.snake[0]}
             snakeNeck={gameState.snake.length > 1 ? gameState.snake[1] : null}
             lastDirection={lastDirection}
+            fov={fov}
           />
           <FoodDirectionArrow
             snakeHead={gameState.snake[0]}
@@ -439,7 +457,11 @@ export default function Play() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [viewRelativeControls, setViewRelativeControls] = useState(true);
   const [isFirstPerson, setIsFirstPerson] = useState(false);
+  const [fpvFov, setFpvFov] = useState(FOV_PRESETS.default);
   const cameraAngleRef = useRef(0);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const pinchStartDistance = useRef<number | null>(null);
+  const pinchStartFov = useRef<number>(FOV_PRESETS.default);
   const [gameState, setGameState] = useState<GameState>({
     snake: [
       { x: 0, y: 0, z: 0 },
@@ -674,27 +696,95 @@ export default function Play() {
         }
       };
 
-      // XZ plane movement (in first-person, these become relative: forward/back/left/right)
-      if (scheme.xzKeys.up.includes(e.key)) {
-        applyDirection({ x: 0, y: 0, z: -1 }); // Forward
-      } else if (scheme.xzKeys.down.includes(e.key)) {
-        applyDirection({ x: 0, y: 0, z: 1 }); // Back (blocked in first-person)
-      } else if (scheme.xzKeys.left.includes(e.key)) {
-        applyDirection({ x: -1, y: 0, z: 0 }); // Left
-      } else if (scheme.xzKeys.right.includes(e.key)) {
-        applyDirection({ x: 1, y: 0, z: 0 }); // Right
-      }
-      // Y axis movement (disabled in first-person mode)
-      else if (!isFirstPerson && scheme.yKeys.up.includes(e.key)) {
-        setDirection({ x: 0, y: 1, z: 0 });
-      } else if (!isFirstPerson && scheme.yKeys.down.includes(e.key)) {
-        setDirection({ x: 0, y: -1, z: 0 });
+      if (isFirstPerson) {
+        // First-person controls: Up/Down for Y axis, Left/Right for turning
+        if (scheme.xzKeys.up.includes(e.key)) {
+          setDirection({ x: 0, y: 1, z: 0 }); // Up
+        } else if (scheme.xzKeys.down.includes(e.key)) {
+          setDirection({ x: 0, y: -1, z: 0 }); // Down
+        } else if (scheme.xzKeys.left.includes(e.key)) {
+          applyDirection({ x: -1, y: 0, z: 0 }); // Turn left
+        } else if (scheme.xzKeys.right.includes(e.key)) {
+          applyDirection({ x: 1, y: 0, z: 0 }); // Turn right
+        }
+      } else {
+        // Orbit view controls: XZ plane movement + Y axis
+        if (scheme.xzKeys.up.includes(e.key)) {
+          applyDirection({ x: 0, y: 0, z: -1 });
+        } else if (scheme.xzKeys.down.includes(e.key)) {
+          applyDirection({ x: 0, y: 0, z: 1 });
+        } else if (scheme.xzKeys.left.includes(e.key)) {
+          applyDirection({ x: -1, y: 0, z: 0 });
+        } else if (scheme.xzKeys.right.includes(e.key)) {
+          applyDirection({ x: 1, y: 0, z: 0 });
+        } else if (scheme.yKeys.up.includes(e.key)) {
+          setDirection({ x: 0, y: 1, z: 0 });
+        } else if (scheme.yKeys.down.includes(e.key)) {
+          setDirection({ x: 0, y: -1, z: 0 });
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState.gameOver, resetGame, setDirection, showNameInput, submitResult, controlType, viewRelativeControls, isFirstPerson]);
+
+  // Zoom controls for first-person view (wheel + pinch)
+  useEffect(() => {
+    const container = canvasContainerRef.current;
+    if (!container || !isFirstPerson) return;
+
+    // Mouse wheel zoom
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 5 : -5;
+      setFpvFov(prev => Math.max(FOV_PRESETS.min, Math.min(FOV_PRESETS.max, prev + delta)));
+    };
+
+    // Touch pinch zoom
+    const getTouchDistance = (touches: TouchList) => {
+      if (touches.length < 2) return null;
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        pinchStartDistance.current = getTouchDistance(e.touches);
+        pinchStartFov.current = fpvFov;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchStartDistance.current !== null) {
+        e.preventDefault();
+        const currentDistance = getTouchDistance(e.touches);
+        if (currentDistance !== null) {
+          // Pinch out (zoom in) = lower FOV, pinch in (zoom out) = higher FOV
+          const scale = pinchStartDistance.current / currentDistance;
+          const newFov = pinchStartFov.current * scale;
+          setFpvFov(Math.max(FOV_PRESETS.min, Math.min(FOV_PRESETS.max, newFov)));
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      pinchStartDistance.current = null;
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isFirstPerson, fpvFov]);
 
   return (
     <div className="fixed inset-0 bg-dark-900 flex flex-col">
@@ -808,7 +898,7 @@ export default function Play() {
       {/* Main content */}
       <main className="flex-1 flex flex-col md:flex-row min-h-0 overflow-auto md:overflow-hidden">
         {/* Game canvas */}
-        <div className="h-[45vh] md:h-auto md:flex-1 relative flex-shrink-0">
+        <div ref={canvasContainerRef} className="h-[45vh] md:h-auto md:flex-1 relative flex-shrink-0">
           <Canvas
             camera={{ position: [35, 25, 35], fov: 50 }}
             gl={{ antialias: true, alpha: true }}
@@ -820,6 +910,7 @@ export default function Play() {
               onCameraAngleChange={(angle) => { cameraAngleRef.current = angle; }}
               isFirstPerson={isFirstPerson}
               lastDirection={lastDirectionRef.current}
+              fov={fpvFov}
             />
           </Canvas>
 
@@ -837,6 +928,31 @@ export default function Play() {
 
           {/* Control toggles - bottom right */}
           <div className="absolute bottom-4 right-4 flex gap-2">
+            {/* Zoom controls - only shown in first-person mode */}
+            {isFirstPerson && (
+              <div className="flex items-center gap-1 bg-dark-800/90 rounded-lg border border-dark-600 px-1">
+                <button
+                  onClick={() => setFpvFov(prev => Math.max(FOV_PRESETS.min, prev - 10))}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Zoom in"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                  </svg>
+                </button>
+                <span className="text-[10px] text-gray-500 font-mono w-8 text-center">{fpvFov}°</span>
+                <button
+                  onClick={() => setFpvFov(prev => Math.min(FOV_PRESETS.max, prev + 10))}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                  title="Zoom out"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
             {/* First-person view toggle */}
             <button
               onClick={() => setIsFirstPerson(!isFirstPerson)}
@@ -979,14 +1095,18 @@ export default function Play() {
           <div className="w-full max-w-[280px]">
             {/* Main controls area - D-pad left, A/B right (or centered in first-person) */}
             <div className={`flex items-center ${isFirstPerson ? 'justify-center' : 'justify-between'}`}>
-              {/* D-Pad - XZ movement (or relative controls in first-person) */}
+              {/* D-Pad - 4 direction controls */}
               <div className="flex flex-col items-center">
                 <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">
-                  {isFirstPerson ? 'Turn' : 'Move'}
+                  {isFirstPerson ? 'Move' : 'Move'}
                 </div>
                 <div className="flex flex-col items-center gap-1">
+                  {/* Up button - Y+ in FPV, Z- in orbit */}
                   <button
-                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: -1 }, isFirstPerson)}
+                    onPointerDown={() => isFirstPerson
+                      ? setDirection({ x: 0, y: 1, z: 0 })
+                      : setDirectionWithViewTransform({ x: 0, y: 0, z: -1 }, false)
+                    }
                     className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -994,8 +1114,12 @@ export default function Play() {
                     </svg>
                   </button>
                   <div className="flex gap-1">
+                    {/* Left button - turn left in FPV, X- in orbit */}
                     <button
-                      onPointerDown={() => setDirectionWithViewTransform({ x: -1, y: 0, z: 0 }, isFirstPerson)}
+                      onPointerDown={() => isFirstPerson
+                        ? setDirectionWithViewTransform({ x: -1, y: 0, z: 0 }, true)
+                        : setDirectionWithViewTransform({ x: -1, y: 0, z: 0 }, false)
+                      }
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1005,8 +1129,12 @@ export default function Play() {
                     <div className="w-12 h-12 bg-dark-900 border border-dark-600 rounded-lg flex items-center justify-center">
                       <div className="w-2.5 h-2.5 bg-dark-600 rounded-full" />
                     </div>
+                    {/* Right button - turn right in FPV, X+ in orbit */}
                     <button
-                      onPointerDown={() => setDirectionWithViewTransform({ x: 1, y: 0, z: 0 }, isFirstPerson)}
+                      onPointerDown={() => isFirstPerson
+                        ? setDirectionWithViewTransform({ x: 1, y: 0, z: 0 }, true)
+                        : setDirectionWithViewTransform({ x: 1, y: 0, z: 0 }, false)
+                      }
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1014,10 +1142,13 @@ export default function Play() {
                       </svg>
                     </button>
                   </div>
+                  {/* Down button - Y- in FPV, Z+ in orbit */}
                   <button
-                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: 1 }, isFirstPerson)}
-                    className={`w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none ${isFirstPerson ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    disabled={isFirstPerson}
+                    onPointerDown={() => isFirstPerson
+                      ? setDirection({ x: 0, y: -1, z: 0 })
+                      : setDirectionWithViewTransform({ x: 0, y: 0, z: 1 }, false)
+                    }
+                    className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -1062,7 +1193,7 @@ export default function Play() {
                 <span className="text-gray-500">Keys:</span>{' '}
                 <span className="text-gray-400">
                   {isFirstPerson
-                    ? `${CONTROL_SCHEMES[controlType].xzKeys.up[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.left[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.right[0].toUpperCase()} (relative)`
+                    ? `${CONTROL_SCHEMES[controlType].xzKeys.left[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.right[0].toUpperCase()} turn, ${CONTROL_SCHEMES[controlType].xzKeys.up[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.down[0].toUpperCase()} up/down`
                     : CONTROL_SCHEMES[controlType].hint
                   }
                 </span>
