@@ -5,8 +5,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Position, Direction, GameState } from '../game/types';
 import { GRID_SIZE, wrapPosition, posEqual } from '../game/utils';
@@ -205,15 +205,154 @@ function CameraController({
   );
 }
 
+// First-person camera that follows the snake head
+function FirstPersonCamera({
+  snakeHead,
+  snakeNeck,
+  lastDirection,
+}: {
+  snakeHead: Position;
+  snakeNeck: Position | null;
+  lastDirection: Direction;
+}) {
+  const { camera } = useThree();
+  const smoothPosition = useRef(new THREE.Vector3());
+  const smoothTarget = useRef(new THREE.Vector3());
+
+  useFrame(() => {
+    // Calculate the direction the snake is moving
+    let dir = lastDirection;
+
+    // Position camera at the snake head (scaled by 2 like other game objects)
+    const headPos = new THREE.Vector3(
+      snakeHead.x * 2,
+      snakeHead.y * 2,
+      snakeHead.z * 2
+    );
+
+    // Calculate look direction based on movement
+    const lookDir = new THREE.Vector3(dir.x, dir.y, dir.z).normalize();
+
+    // Offset camera slightly behind and above the head for better visibility
+    const cameraOffset = lookDir.clone().multiplyScalar(-4);
+    cameraOffset.y += 2; // Slight upward offset
+
+    const targetCameraPos = headPos.clone().add(cameraOffset);
+    const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(10));
+
+    // Smooth interpolation for camera movement
+    smoothPosition.current.lerp(targetCameraPos, 0.15);
+    smoothTarget.current.lerp(targetLookAt, 0.15);
+
+    camera.position.copy(smoothPosition.current);
+    camera.lookAt(smoothTarget.current);
+  });
+
+  return null;
+}
+
+// Food direction indicator arrow for first-person view
+function FoodDirectionArrow({
+  snakeHead,
+  foodPosition,
+}: {
+  snakeHead: Position;
+  foodPosition: Position;
+}) {
+  const arrowRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+
+  useFrame(() => {
+    if (!arrowRef.current) return;
+
+    // Position the arrow in front of the camera (HUD-style)
+    const cameraDir = new THREE.Vector3();
+    camera.getWorldDirection(cameraDir);
+
+    // Place arrow slightly in front and below camera view
+    const arrowPos = camera.position.clone()
+      .add(cameraDir.clone().multiplyScalar(3))
+      .add(new THREE.Vector3(0, -1.5, 0));
+
+    arrowRef.current.position.copy(arrowPos);
+
+    // Calculate direction to food from snake head
+    const headWorld = new THREE.Vector3(
+      snakeHead.x * 2,
+      snakeHead.y * 2,
+      snakeHead.z * 2
+    );
+    const foodWorld = new THREE.Vector3(
+      foodPosition.x * 2,
+      foodPosition.y * 2,
+      foodPosition.z * 2
+    );
+
+    // Get direction to food in world space
+    const toFood = foodWorld.clone().sub(headWorld).normalize();
+
+    // Make arrow face towards food direction
+    const targetQuat = new THREE.Quaternion();
+    const up = new THREE.Vector3(0, 1, 0);
+    const rotationMatrix = new THREE.Matrix4();
+    rotationMatrix.lookAt(new THREE.Vector3(0, 0, 0), toFood, up);
+    targetQuat.setFromRotationMatrix(rotationMatrix);
+
+    arrowRef.current.quaternion.slerp(targetQuat, 0.1);
+  });
+
+  // Calculate distance to food for display
+  const dx = Math.abs(foodPosition.x - snakeHead.x);
+  const dy = Math.abs(foodPosition.y - snakeHead.y);
+  const dz = Math.abs(foodPosition.z - snakeHead.z);
+  const wrapDx = Math.min(dx, GRID_SIZE - dx);
+  const wrapDy = Math.min(dy, GRID_SIZE - dy);
+  const wrapDz = Math.min(dz, GRID_SIZE - dz);
+  const distance = wrapDx + wrapDy + wrapDz;
+
+  return (
+    <group ref={arrowRef}>
+      {/* Arrow shaft */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.3]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.6, 8]} />
+        <meshStandardMaterial
+          color="#ff0088"
+          emissive="#ff0088"
+          emissiveIntensity={0.5}
+        />
+      </mesh>
+      {/* Arrow head (cone) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0.7]}>
+        <coneGeometry args={[0.15, 0.3, 8]} />
+        <meshStandardMaterial
+          color="#ff0088"
+          emissive="#ff0088"
+          emissiveIntensity={0.8}
+        />
+      </mesh>
+      {/* Distance indicator */}
+      <Html position={[0, -0.4, 0]} center>
+        <div className="bg-dark-900/80 px-2 py-0.5 rounded text-xs text-neon-pink font-mono whitespace-nowrap">
+          {distance} blocks
+        </div>
+      </Html>
+    </group>
+  );
+}
+
 // Scene component
 function Scene({
   gameState,
   autoRotate,
-  onCameraAngleChange
+  onCameraAngleChange,
+  isFirstPerson,
+  lastDirection,
 }: {
   gameState: GameState;
   autoRotate: boolean;
   onCameraAngleChange?: (angle: number) => void;
+  isFirstPerson: boolean;
+  lastDirection: Direction;
 }) {
   return (
     <>
@@ -226,7 +365,21 @@ function Scene({
         <SnakeSegment key={index} position={segment} isHead={index === 0} />
       ))}
       <Food position={gameState.food} />
-      <CameraController autoRotate={autoRotate} onAngleChange={onCameraAngleChange} />
+      {isFirstPerson ? (
+        <>
+          <FirstPersonCamera
+            snakeHead={gameState.snake[0]}
+            snakeNeck={gameState.snake.length > 1 ? gameState.snake[1] : null}
+            lastDirection={lastDirection}
+          />
+          <FoodDirectionArrow
+            snakeHead={gameState.snake[0]}
+            foodPosition={gameState.food}
+          />
+        </>
+      ) : (
+        <CameraController autoRotate={autoRotate} onAngleChange={onCameraAngleChange} />
+      )}
     </>
   );
 }
@@ -236,6 +389,7 @@ export default function Play() {
   const { playWin, playWhammy, playTick } = useAudio();
   const [autoRotate, setAutoRotate] = useState(true);
   const [viewRelativeControls, setViewRelativeControls] = useState(true);
+  const [isFirstPerson, setIsFirstPerson] = useState(false);
   const cameraAngleRef = useRef(0);
   const [gameState, setGameState] = useState<GameState>({
     snake: [
@@ -602,6 +756,8 @@ export default function Play() {
               gameState={gameState}
               autoRotate={autoRotate}
               onCameraAngleChange={(angle) => { cameraAngleRef.current = angle; }}
+              isFirstPerson={isFirstPerson}
+              lastDirection={lastDirectionRef.current}
             />
           </Canvas>
 
@@ -619,35 +775,55 @@ export default function Play() {
 
           {/* Control toggles - bottom right */}
           <div className="absolute bottom-4 right-4 flex gap-2">
-            {/* View-relative toggle */}
+            {/* First-person view toggle */}
             <button
-              onClick={() => setViewRelativeControls(!viewRelativeControls)}
+              onClick={() => setIsFirstPerson(!isFirstPerson)}
               className={`p-2 rounded-lg border transition-colors ${
-                viewRelativeControls
-                  ? 'bg-neon-blue/20 border-neon-blue text-neon-blue'
+                isFirstPerson
+                  ? 'bg-neon-pink/20 border-neon-pink text-neon-pink'
                   : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
               }`}
-              title={viewRelativeControls ? 'View-relative controls (ON)' : 'Absolute controls (OFF)'}
+              title={isFirstPerson ? 'Switch to orbit view' : 'Switch to first-person view'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
             </button>
 
-            {/* Rotation toggle */}
-            <button
-              onClick={() => setAutoRotate(!autoRotate)}
-              className={`p-2 rounded-lg border transition-colors ${
-                autoRotate
-                  ? 'bg-neon-green/20 border-neon-green text-neon-green'
-                  : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
-              }`}
-              title={autoRotate ? 'Stop rotation' : 'Start rotation'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
+            {/* View-relative toggle - only shown in orbit view */}
+            {!isFirstPerson && (
+              <button
+                onClick={() => setViewRelativeControls(!viewRelativeControls)}
+                className={`p-2 rounded-lg border transition-colors ${
+                  viewRelativeControls
+                    ? 'bg-neon-blue/20 border-neon-blue text-neon-blue'
+                    : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
+                }`}
+                title={viewRelativeControls ? 'View-relative controls (ON)' : 'Absolute controls (OFF)'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
+
+            {/* Rotation toggle - only shown in orbit view */}
+            {!isFirstPerson && (
+              <button
+                onClick={() => setAutoRotate(!autoRotate)}
+                className={`p-2 rounded-lg border transition-colors ${
+                  autoRotate
+                    ? 'bg-neon-green/20 border-neon-green text-neon-green'
+                    : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
+                }`}
+                title={autoRotate ? 'Stop rotation' : 'Start rotation'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            )}
           </div>
 
           {/* Game over overlay */}
