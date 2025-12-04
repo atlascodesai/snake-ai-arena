@@ -35,6 +35,41 @@ function transformDirectionForCamera(dir: Direction, cameraAngle: number): Direc
   return { x: newX, y: 0, z: newZ };
 }
 
+// Transform direction relative to snake's current movement direction (for first-person)
+// Input: relative direction where z=-1 is forward, x=-1 is left, x=1 is right
+function transformDirectionForSnake(relativeDir: Direction, snakeDirection: Direction): Direction | null {
+  // Can't go backward (180 degree turn)
+  if (relativeDir.z === 1) return null;
+
+  // Forward = continue in same direction
+  if (relativeDir.z === -1) return snakeDirection;
+
+  // For left/right turns, we need to rotate based on current direction
+  // This works in 3D by finding perpendicular directions
+
+  const sd = snakeDirection;
+
+  // If moving along Y axis, left/right should be in XZ plane
+  if (sd.y !== 0) {
+    if (relativeDir.x === -1) return { x: -1, y: 0, z: 0 }; // Left
+    if (relativeDir.x === 1) return { x: 1, y: 0, z: 0 };   // Right
+  }
+
+  // If moving along X axis
+  if (sd.x !== 0) {
+    if (relativeDir.x === -1) return { x: 0, y: 0, z: sd.x };  // Left (turn to +Z or -Z)
+    if (relativeDir.x === 1) return { x: 0, y: 0, z: -sd.x };   // Right
+  }
+
+  // If moving along Z axis
+  if (sd.z !== 0) {
+    if (relativeDir.x === -1) return { x: -sd.z, y: 0, z: 0 }; // Left (turn to +X or -X)
+    if (relativeDir.x === 1) return { x: sd.z, y: 0, z: 0 };   // Right
+  }
+
+  return null;
+}
+
 // Control scheme definitions
 const CONTROL_SCHEMES: Record<ControlType, {
   name: string;
@@ -218,10 +253,11 @@ function FirstPersonCamera({
   const { camera } = useThree();
   const smoothPosition = useRef(new THREE.Vector3());
   const smoothTarget = useRef(new THREE.Vector3());
+  const smoothUp = useRef(new THREE.Vector3(0, 1, 0));
 
   useFrame(() => {
     // Calculate the direction the snake is moving
-    let dir = lastDirection;
+    const dir = lastDirection;
 
     // Position camera at the snake head (scaled by 2 like other game objects)
     const headPos = new THREE.Vector3(
@@ -233,18 +269,31 @@ function FirstPersonCamera({
     // Calculate look direction based on movement
     const lookDir = new THREE.Vector3(dir.x, dir.y, dir.z).normalize();
 
-    // Offset camera slightly behind and above the head for better visibility
-    const cameraOffset = lookDir.clone().multiplyScalar(-4);
-    cameraOffset.y += 2; // Slight upward offset
+    // Calculate proper up vector to avoid gimbal lock
+    // When moving vertically, use a horizontal reference for "up"
+    let targetUp = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(dir.y) > 0.5) {
+      // Moving up or down - use forward direction in XZ plane as reference
+      // This keeps the camera oriented so "up" on screen is the direction we came from
+      targetUp = new THREE.Vector3(0, 0, -dir.y); // Look "forward" relative to vertical movement
+    }
+
+    // Offset camera behind the head (no vertical offset when moving vertically)
+    const cameraOffset = lookDir.clone().multiplyScalar(-5);
+    if (Math.abs(dir.y) < 0.5) {
+      cameraOffset.y += 1.5; // Only add vertical offset when moving horizontally
+    }
 
     const targetCameraPos = headPos.clone().add(cameraOffset);
     const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(10));
 
     // Smooth interpolation for camera movement
-    smoothPosition.current.lerp(targetCameraPos, 0.15);
-    smoothTarget.current.lerp(targetLookAt, 0.15);
+    smoothPosition.current.lerp(targetCameraPos, 0.12);
+    smoothTarget.current.lerp(targetLookAt, 0.12);
+    smoothUp.current.lerp(targetUp, 0.08);
 
     camera.position.copy(smoothPosition.current);
+    camera.up.copy(smoothUp.current);
     camera.lookAt(smoothTarget.current);
   });
 
@@ -511,8 +560,15 @@ export default function Play() {
   }, []);
 
   // Set direction with view-relative transformation for XZ movements
-  const setDirectionWithViewTransform = useCallback((dir: Direction) => {
-    if (viewRelativeControls && dir.y === 0) {
+  // In first-person mode, transform relative to snake direction
+  const setDirectionWithViewTransform = useCallback((dir: Direction, firstPerson: boolean = false) => {
+    if (firstPerson) {
+      // First-person: transform relative to snake's current direction
+      const newDir = transformDirectionForSnake(dir, lastDirectionRef.current);
+      if (newDir) {
+        setDirection(newDir);
+      }
+    } else if (viewRelativeControls && dir.y === 0) {
       setDirection(transformDirectionForCamera(dir, cameraAngleRef.current));
     } else {
       setDirection(dir);
@@ -605,34 +661,40 @@ export default function Play() {
 
       // Helper to apply view-relative transformation
       const applyDirection = (dir: Direction) => {
-        if (viewRelativeControls && dir.y === 0) {
+        if (isFirstPerson) {
+          // First-person: transform relative to snake direction
+          const newDir = transformDirectionForSnake(dir, lastDirectionRef.current);
+          if (newDir) {
+            setDirection(newDir);
+          }
+        } else if (viewRelativeControls && dir.y === 0) {
           setDirection(transformDirectionForCamera(dir, cameraAngleRef.current));
         } else {
           setDirection(dir);
         }
       };
 
-      // XZ plane movement
+      // XZ plane movement (in first-person, these become relative: forward/back/left/right)
       if (scheme.xzKeys.up.includes(e.key)) {
-        applyDirection({ x: 0, y: 0, z: -1 });
+        applyDirection({ x: 0, y: 0, z: -1 }); // Forward
       } else if (scheme.xzKeys.down.includes(e.key)) {
-        applyDirection({ x: 0, y: 0, z: 1 });
+        applyDirection({ x: 0, y: 0, z: 1 }); // Back (blocked in first-person)
       } else if (scheme.xzKeys.left.includes(e.key)) {
-        applyDirection({ x: -1, y: 0, z: 0 });
+        applyDirection({ x: -1, y: 0, z: 0 }); // Left
       } else if (scheme.xzKeys.right.includes(e.key)) {
-        applyDirection({ x: 1, y: 0, z: 0 });
+        applyDirection({ x: 1, y: 0, z: 0 }); // Right
       }
-      // Y axis movement (not affected by view-relative)
-      else if (scheme.yKeys.up.includes(e.key)) {
+      // Y axis movement (disabled in first-person mode)
+      else if (!isFirstPerson && scheme.yKeys.up.includes(e.key)) {
         setDirection({ x: 0, y: 1, z: 0 });
-      } else if (scheme.yKeys.down.includes(e.key)) {
+      } else if (!isFirstPerson && scheme.yKeys.down.includes(e.key)) {
         setDirection({ x: 0, y: -1, z: 0 });
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState.gameOver, resetGame, setDirection, showNameInput, submitResult, controlType, viewRelativeControls]);
+  }, [gameState.gameOver, resetGame, setDirection, showNameInput, submitResult, controlType, viewRelativeControls, isFirstPerson]);
 
   return (
     <div className="fixed inset-0 bg-dark-900 flex flex-col">
@@ -915,14 +977,16 @@ export default function Play() {
         {/* Controls panel - Gameboy layout with modern styling */}
         <div className="flex-shrink-0 md:w-80 border-t md:border-t-0 md:border-l border-dark-700 p-4 md:p-6 flex items-center justify-center bg-dark-800/50">
           <div className="w-full max-w-[280px]">
-            {/* Main controls area - D-pad left, A/B right */}
-            <div className="flex justify-between items-center">
-              {/* D-Pad (left side) - XZ movement */}
+            {/* Main controls area - D-pad left, A/B right (or centered in first-person) */}
+            <div className={`flex items-center ${isFirstPerson ? 'justify-center' : 'justify-between'}`}>
+              {/* D-Pad - XZ movement (or relative controls in first-person) */}
               <div className="flex flex-col items-center">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Move</div>
+                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">
+                  {isFirstPerson ? 'Turn' : 'Move'}
+                </div>
                 <div className="flex flex-col items-center gap-1">
                   <button
-                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: -1 })}
+                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: -1 }, isFirstPerson)}
                     className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -931,7 +995,7 @@ export default function Play() {
                   </button>
                   <div className="flex gap-1">
                     <button
-                      onPointerDown={() => setDirectionWithViewTransform({ x: -1, y: 0, z: 0 })}
+                      onPointerDown={() => setDirectionWithViewTransform({ x: -1, y: 0, z: 0 }, isFirstPerson)}
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -942,7 +1006,7 @@ export default function Play() {
                       <div className="w-2.5 h-2.5 bg-dark-600 rounded-full" />
                     </div>
                     <button
-                      onPointerDown={() => setDirectionWithViewTransform({ x: 1, y: 0, z: 0 })}
+                      onPointerDown={() => setDirectionWithViewTransform({ x: 1, y: 0, z: 0 }, isFirstPerson)}
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -951,8 +1015,9 @@ export default function Play() {
                     </button>
                   </div>
                   <button
-                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: 1 })}
-                    className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
+                    onPointerDown={() => setDirectionWithViewTransform({ x: 0, y: 0, z: 1 }, isFirstPerson)}
+                    className={`w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none ${isFirstPerson ? 'opacity-30 cursor-not-allowed' : ''}`}
+                    disabled={isFirstPerson}
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -961,39 +1026,46 @@ export default function Play() {
                 </div>
               </div>
 
-              {/* Y-axis Buttons (right side, offset) */}
-              <div className="flex flex-col items-center">
-                <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Up/Down</div>
-                <div className="flex gap-3 -rotate-12">
-                  {/* Down button - lower left */}
-                  <div className="flex flex-col items-center mt-6">
-                    <button
-                      onPointerDown={() => setDirection({ x: 0, y: -1, z: 0 })}
-                      className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-pink/30 border-2 border-dark-500 active:border-neon-pink rounded-full flex items-center justify-center text-gray-300 active:text-neon-pink transition-colors select-none shadow-lg"
-                    >
-                      <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.down[0].toUpperCase()}</span>
-                    </button>
-                    <span className="text-[9px] text-gray-500 mt-1 rotate-12">Down</span>
-                  </div>
-                  {/* Up button - upper right */}
-                  <div className="flex flex-col items-center">
-                    <button
-                      onPointerDown={() => setDirection({ x: 0, y: 1, z: 0 })}
-                      className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-blue/30 border-2 border-dark-500 active:border-neon-blue rounded-full flex items-center justify-center text-gray-300 active:text-neon-blue transition-colors select-none shadow-lg"
-                    >
-                      <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.up[0].toUpperCase()}</span>
-                    </button>
-                    <span className="text-[9px] text-gray-500 mt-1 rotate-12">Up</span>
+              {/* Y-axis Buttons (right side, offset) - hidden in first-person mode */}
+              {!isFirstPerson && (
+                <div className="flex flex-col items-center">
+                  <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Up/Down</div>
+                  <div className="flex gap-3 -rotate-12">
+                    {/* Down button - lower left */}
+                    <div className="flex flex-col items-center mt-6">
+                      <button
+                        onPointerDown={() => setDirection({ x: 0, y: -1, z: 0 })}
+                        className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-pink/30 border-2 border-dark-500 active:border-neon-pink rounded-full flex items-center justify-center text-gray-300 active:text-neon-pink transition-colors select-none shadow-lg"
+                      >
+                        <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.down[0].toUpperCase()}</span>
+                      </button>
+                      <span className="text-[9px] text-gray-500 mt-1 rotate-12">Down</span>
+                    </div>
+                    {/* Up button - upper right */}
+                    <div className="flex flex-col items-center">
+                      <button
+                        onPointerDown={() => setDirection({ x: 0, y: 1, z: 0 })}
+                        className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-blue/30 border-2 border-dark-500 active:border-neon-blue rounded-full flex items-center justify-center text-gray-300 active:text-neon-blue transition-colors select-none shadow-lg"
+                      >
+                        <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.up[0].toUpperCase()}</span>
+                      </button>
+                      <span className="text-[9px] text-gray-500 mt-1 rotate-12">Up</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Keyboard hint */}
             <div className="mt-6 text-center">
               <div className="text-[10px] text-gray-600 bg-dark-900/50 rounded px-3 py-2 inline-block">
                 <span className="text-gray-500">Keys:</span>{' '}
-                <span className="text-gray-400">{CONTROL_SCHEMES[controlType].hint}</span>
+                <span className="text-gray-400">
+                  {isFirstPerson
+                    ? `${CONTROL_SCHEMES[controlType].xzKeys.up[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.left[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.right[0].toUpperCase()} (relative)`
+                    : CONTROL_SCHEMES[controlType].hint
+                  }
+                </span>
               </div>
             </div>
           </div>
