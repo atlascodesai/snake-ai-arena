@@ -150,7 +150,7 @@ const CONTROL_SCHEMES: Record<ControlType, {
 };
 
 // Snake segment component
-function SnakeSegment({ position, isHead }: { position: Position; isHead: boolean }) {
+function SnakeSegment({ position, isHead, hidden }: { position: Position; isHead: boolean; hidden?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
@@ -159,6 +159,9 @@ function SnakeSegment({ position, isHead }: { position: Position; isHead: boolea
       material.emissiveIntensity = 0.5 + Math.sin(clock.elapsedTime * 3) * 0.3;
     }
   });
+
+  // Hide the segment if requested (e.g., head in first-person view)
+  if (hidden) return null;
 
   const scale = 1.8;
   const color = isHead ? '#00ff88' : '#00cc66';
@@ -333,15 +336,17 @@ function CameraController({
   );
 }
 
-// First-person camera that follows the snake head - positioned at the eyes looking forward
+// First-person camera that follows the snake head - positioned at the front edge looking forward
 function FirstPersonCamera({
   snakeHead,
   lastDirection,
   snakeUp,
+  fov,
 }: {
   snakeHead: Position;
   lastDirection: Direction;
   snakeUp: Direction;
+  fov: number;
 }) {
   const { camera } = useThree();
   const smoothPosition = useRef(new THREE.Vector3());
@@ -351,7 +356,7 @@ function FirstPersonCamera({
   useFrame(() => {
     const dir = lastDirection;
 
-    // Position camera at the snake head (at the "eyes")
+    // Position camera at the snake head
     const headPos = new THREE.Vector3(
       snakeHead.x * 2,
       snakeHead.y * 2,
@@ -364,16 +369,22 @@ function FirstPersonCamera({
     // Up vector comes from the tracked snake orientation
     const targetUp = new THREE.Vector3(snakeUp.x, snakeUp.y, snakeUp.z);
 
-    // Camera position: slightly forward from head center (at the "eyes")
-    const targetCameraPos = headPos.clone().add(lookDir.clone().multiplyScalar(0.5));
+    // Camera position: at the front edge of the head (scale is 1.8, so ~1 unit ahead of center)
+    // Position camera just ahead of where the head box ends
+    const targetCameraPos = headPos.clone().add(lookDir.clone().multiplyScalar(1.2));
 
     // Look at point: far ahead in the direction of travel
-    const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(20));
+    const targetLookAt = headPos.clone().add(lookDir.clone().multiplyScalar(50));
 
     // Smooth interpolation for fluid camera movement
-    smoothPosition.current.lerp(targetCameraPos, 0.15);
-    smoothTarget.current.lerp(targetLookAt, 0.15);
-    smoothUp.current.lerp(targetUp, 0.15);
+    smoothPosition.current.lerp(targetCameraPos, 0.2);
+    smoothTarget.current.lerp(targetLookAt, 0.2);
+    smoothUp.current.lerp(targetUp, 0.2);
+
+    // Update camera FOV
+    const perspCamera = camera as THREE.PerspectiveCamera;
+    perspCamera.fov = fov;
+    perspCamera.updateProjectionMatrix();
 
     camera.position.copy(smoothPosition.current);
     camera.up.copy(smoothUp.current);
@@ -393,6 +404,7 @@ function Scene({
   snakeUp,
   fireworkTrigger,
   fireworkPosition,
+  fpvFov,
 }: {
   gameState: GameState;
   autoRotate: boolean;
@@ -402,6 +414,7 @@ function Scene({
   snakeUp: Direction;
   fireworkTrigger: number;
   fireworkPosition: Position;
+  fpvFov: number;
 }) {
   return (
     <>
@@ -411,7 +424,12 @@ function Scene({
       <pointLight position={[0, 0, -30]} intensity={0.5} color="#ff00ff" />
       <GridCage />
       {gameState.snake.map((segment, index) => (
-        <SnakeSegment key={index} position={segment} isHead={index === 0} />
+        <SnakeSegment
+          key={index}
+          position={segment}
+          isHead={index === 0}
+          hidden={isFirstPerson && index === 0}  // Hide head in first-person view
+        />
       ))}
       <Food position={gameState.food} />
       <Fireworks trigger={fireworkTrigger} position={fireworkPosition} />
@@ -420,6 +438,7 @@ function Scene({
           snakeHead={gameState.snake[0]}
           lastDirection={lastDirection}
           snakeUp={snakeUp}
+          fov={fpvFov}
         />
       ) : (
         <CameraController autoRotate={autoRotate} onAngleChange={onCameraAngleChange} />
@@ -434,6 +453,7 @@ export default function Play() {
   const [autoRotate, setAutoRotate] = useState(true);
   const [viewRelativeControls, setViewRelativeControls] = useState(true);
   const [isFirstPerson, setIsFirstPerson] = useState(false);
+  const [fpvFov, setFpvFov] = useState(90); // First-person view FOV (50-120)
   const cameraAngleRef = useRef(0);
   const [fireworkTrigger, setFireworkTrigger] = useState(0);
   const [fireworkPosition, setFireworkPosition] = useState<Position>({ x: 0, y: 0, z: 0 });
@@ -820,6 +840,7 @@ export default function Play() {
               snakeUp={snakeUpRef.current}
               fireworkTrigger={fireworkTrigger}
               fireworkPosition={fireworkPosition}
+              fpvFov={fpvFov}
             />
           </Canvas>
 
@@ -836,7 +857,23 @@ export default function Play() {
           </div>
 
           {/* Control toggles - bottom right */}
-          <div className="absolute bottom-4 right-4 flex gap-2">
+          <div className="absolute bottom-4 right-4 flex items-center gap-2">
+            {/* FOV slider - only shown in first-person view */}
+            {isFirstPerson && (
+              <div className="flex items-center gap-2 bg-dark-800/90 backdrop-blur px-3 py-2 rounded-lg border border-dark-600">
+                <span className="text-xs text-gray-400">FOV</span>
+                <input
+                  type="range"
+                  min="50"
+                  max="120"
+                  value={fpvFov}
+                  onChange={(e) => setFpvFov(Number(e.target.value))}
+                  className="w-20 h-1 bg-dark-600 rounded-lg appearance-none cursor-pointer accent-neon-pink"
+                />
+                <span className="text-xs text-neon-pink font-mono w-6">{fpvFov}</span>
+              </div>
+            )}
+
             {/* First-person view toggle */}
             <button
               onClick={() => setIsFirstPerson(!isFirstPerson)}
