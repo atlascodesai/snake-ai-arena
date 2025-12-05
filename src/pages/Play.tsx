@@ -1029,21 +1029,28 @@ export default function Play() {
               </div>
             )}
 
-            {/* First-person view toggle */}
-            <button
-              onClick={() => setIsFirstPerson(!isFirstPerson)}
-              className={`p-2 rounded-lg border transition-colors ${
-                isFirstPerson
-                  ? 'bg-neon-pink/20 border-neon-pink text-neon-pink'
-                  : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
-              }`}
-              title={isFirstPerson ? 'Switch to orbit view' : 'Switch to first-person view'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-            </button>
+            {/* First-person view toggle with bouncing arrow */}
+            <div className="relative">
+              {!isFirstPerson && (
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 animate-bounce pointer-events-none">
+                  <div className="text-neon-pink text-lg">↓</div>
+                </div>
+              )}
+              <button
+                onClick={() => setIsFirstPerson(!isFirstPerson)}
+                className={`p-2 rounded-lg border transition-colors ${
+                  isFirstPerson
+                    ? 'bg-neon-pink/20 border-neon-pink text-neon-pink'
+                    : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
+                }`}
+                title={isFirstPerson ? 'Switch to orbit view' : 'Switch to first-person view'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            </div>
 
             {/* View-relative toggle - only shown in orbit view */}
             {!isFirstPerson && (
