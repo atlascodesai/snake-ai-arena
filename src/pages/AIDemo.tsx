@@ -4,14 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-
-// Try to import private presentation component
-let AIDemoPresentation: React.ComponentType | null = null;
-try {
-  AIDemoPresentation = require('../private/AIDemoContent').AIDemoPresentation;
-} catch {
-  AIDemoPresentation = null;
-}
+import { AIDemoPresentation } from '../private/AIDemoContent';
 
 export default function AIDemo() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -100,20 +93,5 @@ export default function AIDemo() {
   }
 
   // Authenticated - show presentation
-  if (AIDemoPresentation) {
-    return <AIDemoPresentation />;
-  }
-
-  // Fallback if presentation component not available
-  return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-      <div className="bg-dark-800 rounded-xl p-8 border border-dark-700 text-center max-w-md">
-        <span className="text-6xl">🤖</span>
-        <h1 className="text-2xl font-bold text-white mt-4">AI Demo</h1>
-        <p className="text-gray-400 mt-2">
-          Presentation content is not available. Please ensure the private submodule is installed.
-        </p>
-      </div>
-    </div>
-  );
+  return <AIDemoPresentation />;
 }
