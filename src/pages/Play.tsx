@@ -94,6 +94,80 @@ function getNewUpVector(oldDirection: Direction, newDirection: Direction, oldUp:
   return oldUp;
 }
 
+// Check if moving in a direction would cause collision with snake body
+function wouldCollide(
+  head: Position,
+  direction: Direction,
+  snake: Position[]
+): boolean {
+  const newHead = wrapPosition({
+    x: head.x + direction.x,
+    y: head.y + direction.y,
+    z: head.z + direction.z,
+  });
+  return snake.slice(1).some(seg => posEqual(seg, newHead));
+}
+
+// Get relative direction info for first-person HUD
+// Returns which directions (relative to snake's facing) have: food, collision risk
+function getFirstPersonHUD(
+  snake: Position[],
+  food: Position,
+  snakeDirection: Direction,
+  snakeUp: Direction
+): {
+  foodDirection: 'ahead' | 'left' | 'right' | 'up' | 'down' | 'behind' | null;
+  collisionWarnings: { up: boolean; down: boolean; left: boolean; right: boolean };
+} {
+  const head = snake[0];
+  const forward = snakeDirection;
+  const up = snakeUp;
+
+  // Calculate right vector
+  const right: Direction = {
+    x: forward.y * up.z - forward.z * up.y,
+    y: forward.z * up.x - forward.x * up.z,
+    z: forward.x * up.y - forward.y * up.x,
+  };
+
+  // Check collision for each relative direction
+  const collisionWarnings = {
+    up: wouldCollide(head, up, snake),
+    down: wouldCollide(head, { x: -up.x, y: -up.y, z: -up.z }, snake),
+    left: wouldCollide(head, { x: -right.x, y: -right.y, z: -right.z }, snake),
+    right: wouldCollide(head, right, snake),
+  };
+
+  // Calculate food direction relative to snake
+  const toFood = {
+    x: food.x - head.x,
+    y: food.y - head.y,
+    z: food.z - head.z,
+  };
+
+  // Project food direction onto snake's coordinate system
+  const dotForward = toFood.x * forward.x + toFood.y * forward.y + toFood.z * forward.z;
+  const dotUp = toFood.x * up.x + toFood.y * up.y + toFood.z * up.z;
+  const dotRight = toFood.x * right.x + toFood.y * right.y + toFood.z * right.z;
+
+  // Determine primary direction to food
+  const absForward = Math.abs(dotForward);
+  const absUp = Math.abs(dotUp);
+  const absRight = Math.abs(dotRight);
+
+  let foodDirection: 'ahead' | 'left' | 'right' | 'up' | 'down' | 'behind' | null = null;
+
+  if (absForward >= absUp && absForward >= absRight) {
+    foodDirection = dotForward > 0 ? 'ahead' : 'behind';
+  } else if (absUp >= absForward && absUp >= absRight) {
+    foodDirection = dotUp > 0 ? 'up' : 'down';
+  } else {
+    foodDirection = dotRight > 0 ? 'right' : 'left';
+  }
+
+  return { foodDirection, collisionWarnings };
+}
+
 // Control scheme definitions
 const CONTROL_SCHEMES: Record<ControlType, {
   name: string;
@@ -669,16 +743,21 @@ export default function Play() {
         return;
       }
 
+      // Prevent default for arrow keys to stop page scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+
       if (isFirstPerson) {
         // First-person controls: all relative to snake's POV (pitch/yaw)
-        // Up = pitch up, Down = pitch down, Left = yaw left, Right = yaw right
-        if (scheme.xzKeys.up.includes(e.key)) {
+        // Support both WASD and Arrow keys in FPV for convenience
+        if (scheme.xzKeys.up.includes(e.key) || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
           setFirstPersonDirection('up');
-        } else if (scheme.xzKeys.down.includes(e.key)) {
+        } else if (scheme.xzKeys.down.includes(e.key) || e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
           setFirstPersonDirection('down');
-        } else if (scheme.xzKeys.left.includes(e.key)) {
+        } else if (scheme.xzKeys.left.includes(e.key) || e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
           setFirstPersonDirection('left');
-        } else if (scheme.xzKeys.right.includes(e.key)) {
+        } else if (scheme.xzKeys.right.includes(e.key) || e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
           setFirstPersonDirection('right');
         }
       } else {
@@ -856,6 +935,82 @@ export default function Play() {
             </div>
           </div>
 
+          {/* First-person HUD - direction indicators */}
+          {isFirstPerson && !gameState.gameOver && (() => {
+            const hud = getFirstPersonHUD(
+              gameState.snake,
+              gameState.food,
+              lastDirectionRef.current,
+              snakeUpRef.current
+            );
+            return (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                {/* Direction indicator cross */}
+                <div className="relative w-32 h-32">
+                  {/* Up indicator */}
+                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center ${
+                    hud.collisionWarnings.up ? 'text-red-500' : hud.foodDirection === 'up' ? 'text-neon-pink' : 'text-gray-600'
+                  }`}>
+                    {hud.collisionWarnings.up && <span className="text-xs mb-0.5">⚠️</span>}
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                    </svg>
+                    {hud.foodDirection === 'up' && <span className="text-xs">🍎</span>}
+                  </div>
+
+                  {/* Down indicator */}
+                  <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center ${
+                    hud.collisionWarnings.down ? 'text-red-500' : hud.foodDirection === 'down' ? 'text-neon-pink' : 'text-gray-600'
+                  }`}>
+                    {hud.foodDirection === 'down' && <span className="text-xs">🍎</span>}
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                    {hud.collisionWarnings.down && <span className="text-xs mt-0.5">⚠️</span>}
+                  </div>
+
+                  {/* Left indicator */}
+                  <div className={`absolute left-0 top-1/2 -translate-y-1/2 flex items-center ${
+                    hud.collisionWarnings.left ? 'text-red-500' : hud.foodDirection === 'left' ? 'text-neon-pink' : 'text-gray-600'
+                  }`}>
+                    {hud.collisionWarnings.left && <span className="text-xs mr-0.5">⚠️</span>}
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    {hud.foodDirection === 'left' && <span className="text-xs">🍎</span>}
+                  </div>
+
+                  {/* Right indicator */}
+                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center ${
+                    hud.collisionWarnings.right ? 'text-red-500' : hud.foodDirection === 'right' ? 'text-neon-pink' : 'text-gray-600'
+                  }`}>
+                    {hud.foodDirection === 'right' && <span className="text-xs">🍎</span>}
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                    {hud.collisionWarnings.right && <span className="text-xs ml-0.5">⚠️</span>}
+                  </div>
+
+                  {/* Center - ahead/behind indicator */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                    {hud.foodDirection === 'ahead' && (
+                      <div className="text-neon-pink animate-pulse">
+                        <span className="text-lg">🍎</span>
+                        <div className="text-[10px]">AHEAD</div>
+                      </div>
+                    )}
+                    {hud.foodDirection === 'behind' && (
+                      <div className="text-gray-500">
+                        <span className="text-sm">🍎</span>
+                        <div className="text-[10px]">BEHIND</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Control toggles - bottom right */}
           <div className="absolute bottom-4 right-4 flex items-center gap-2">
             {/* FOV slider - only shown in first-person view */}
@@ -984,7 +1139,7 @@ export default function Play() {
                     {!submitResult && gameState.score > 0 && (
                       <button
                         onClick={() => setShowNameInput(true)}
-                        className="px-6 py-3 bg-neon-blue text-white font-bold rounded-lg hover:bg-neon-blue/90 transition-colors"
+                        className="px-6 py-3 bg-neon-blue text-dark-900 font-bold rounded-lg hover:bg-neon-blue/90 transition-colors"
                       >
                         Submit Score
                       </button>
