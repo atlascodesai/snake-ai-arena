@@ -114,26 +114,52 @@ feature/* → preview → main
 
 | Branch | Environment | URL |
 |--------|-------------|-----|
-| `preview` | Preview | https://web-preview-e0a3.up.railway.app |
-| `main` | Production | (Railway production URL) |
+| `preview` | Preview | https://p.snake3js.com / https://web-preview-e0a3.up.railway.app |
+| `main` | Production | https://snake3js.com |
+
+### Deployment Methods
+
+**Option 1: Local Deploy (Required for private submodule content)**
+
+The project contains a private submodule (`src/private/`) that GitHub cannot access. Use `deploy.sh` to include private content:
+
+```bash
+./deploy.sh           # Deploy to preview (default)
+./deploy.sh preview   # Explicit preview deploy
+./deploy.sh production  # Deploy to production
+```
+
+The script temporarily unhides the submodule `.git` reference so Railway uploads the actual files.
+
+**Option 2: Git Push (Public content only)**
+
+For changes that don't touch private content, git push triggers auto-deploy:
+
+```bash
+git push origin preview   # Auto-deploys to preview
+git push origin main      # Auto-deploys to production
+```
+
+⚠️ Note: Private submodule content will show placeholders if deployed via git push.
 
 ### Workflow
 
 1. **Development:** Work on `preview` branch or feature branches
-2. **Test:** Push to `preview` → auto-deploys to preview environment
-3. **Ship:** Merge `preview` into `main` → auto-deploys to production
+2. **Test locally:** Run tests before pushing
+3. **Deploy:** Use `./deploy.sh` to deploy with private content
+4. **Ship to prod:** Merge preview → main, then `./deploy.sh production`
 
 ### Commands
 
 ```bash
-# Deploy to preview
-git checkout preview
-git merge feature/my-feature
-git push origin preview
+# Deploy to preview (with private content)
+./deploy.sh preview
 
-# Deploy to production
-git checkout main
-git merge preview
+# Deploy to production (with private content)
+./deploy.sh production
+
+# Git-only deploy (public content only)
+git push origin preview
 git push origin main
 ```
 
