@@ -18,11 +18,9 @@ test.describe('About Page', () => {
   });
 
   test('should display technology stack or credits', async ({ page }) => {
-    // About pages typically show technologies or credits
-    const techInfo = page.locator('text=/react|three|typescript|credit/i');
-    const hasTechInfo = await techInfo.count() > 0;
-
-    // May or may not include this info
-    expect(true).toBe(true);
+    // About pages typically show technologies, credits, or game info
+    const infoText = page.locator('body');
+    // Page should have meaningful content about the game
+    await expect(infoText).toContainText(/snake|game|3d|play/i);
   });
 });

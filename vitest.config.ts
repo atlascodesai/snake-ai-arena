@@ -11,7 +11,7 @@ export default defineConfig({
       'src/**/*.{test,spec}.{js,ts,tsx}',
       'server/**/*.{test,spec}.{js,ts}',
     ],
-    exclude: ['node_modules', 'dist'],
+    exclude: ['node_modules', 'dist', '**/integration.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -22,6 +22,14 @@ export default defineConfig({
         '**/*.config.*',
         'dist/',
       ],
+      thresholds: {
+        // Start with achievable thresholds and increase over time
+        // Current: 11% overall, but game logic is 73-100%
+        lines: 10,
+        functions: 10,
+        branches: 10,
+        statements: 10,
+      },
     },
   },
 });

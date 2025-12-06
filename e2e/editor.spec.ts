@@ -12,14 +12,15 @@ test.describe('Editor Page', () => {
     await expect(page.locator('.monaco-editor').first()).toBeVisible({ timeout: 20000 });
   });
 
-  test('should have Code and Game tabs on mobile', async ({ page }) => {
-    // Look for tab buttons
-    const codeTab = page.locator('button:has-text("Code")');
-    const gameTab = page.locator('button:has-text("Game")');
+  test('should have editor and game visible', async ({ page }) => {
+    // On desktop: both editor and game canvas are visible
+    // On mobile: tabs switch between them
+    const hasEditor = await page.locator('.monaco-editor').first().isVisible();
+    const hasCanvas = await page.locator('canvas[data-engine*="three"]').isVisible();
+    const hasTabs = await page.locator('button:has-text("Code"), button:has-text("Game")').count() > 0;
 
-    // At least one should be visible (on mobile) or neither (on desktop)
-    const hasCodeTab = await codeTab.count() > 0;
-    expect(hasCodeTab || true).toBe(true);
+    // Either both visible (desktop) or tabs present (mobile)
+    expect(hasEditor || hasCanvas || hasTabs).toBe(true);
   });
 
   test('should have a submit button', async ({ page }) => {

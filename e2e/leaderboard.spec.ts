@@ -13,13 +13,10 @@ test.describe('Leaderboard Page', () => {
 
   test('should show tab options', async ({ page }) => {
     // There should be tabs to switch between AI and Manual leaderboards
-    const aiTab = page.locator('button, [role="tab"]').filter({ hasText: /ai|algorithm/i });
-    const manualTab = page.locator('button, [role="tab"]').filter({ hasText: /manual|human/i });
+    const tabs = page.locator('button, [role="tab"]').filter({ hasText: /ai|algorithm|manual|human/i });
 
     // At least one type of tab should be present
-    const hasAiTab = await aiTab.count() > 0;
-    const hasManualTab = await manualTab.count() > 0;
-    expect(hasAiTab || hasManualTab || true).toBe(true);
+    await expect(tabs.first()).toBeVisible({ timeout: 10000 });
   });
 
   test('should render page without errors', async ({ page }) => {

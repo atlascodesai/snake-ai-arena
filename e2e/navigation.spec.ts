@@ -103,9 +103,9 @@ test.describe('Dashboard', () => {
     await page.goto('/');
     // Wait for page to load
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000); // Give time for content to render
-    // Leaderboard section should be present
-    const hasLeaderboard = await page.locator('text=/rank|score|name/i').count() > 0;
-    expect(hasLeaderboard || true).toBe(true); // May be loading or empty
+    // Leaderboard section should be present - look for table headers or leaderboard text
+    await expect(
+      page.locator('text=/rank|score|leaderboard/i').first()
+    ).toBeVisible({ timeout: 10000 });
   });
 });

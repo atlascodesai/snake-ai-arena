@@ -37,10 +37,10 @@ test.describe('Play Page', () => {
     await expect(page.locator('canvas[data-engine*="three"]')).toBeVisible();
   });
 
-  test('should have navigation back to home', async ({ page }) => {
-    // Look for back/home button
-    const backButton = page.locator('button:has-text("Back"), a[href="/"]');
-    const hasBackButton = await backButton.count() > 0;
-    expect(hasBackButton || true).toBe(true);
+  test('should have navigation menu', async ({ page }) => {
+    // Play page uses a hamburger menu for navigation
+    // The header contains a button with hamburger menu and snake emoji
+    const header = page.locator('text=Manual Play');
+    await expect(header).toBeVisible({ timeout: 10000 });
   });
 });
