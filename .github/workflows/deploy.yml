@@ -37,4 +37,4 @@ jobs:
           RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.SNAKE_PROD || secrets.SNAKE_PREVIEW }}
         run: |
           echo "Deploying to ${{ steps.env.outputs.environment }}..."
-          railway up
+          railway up --service web
