@@ -34,9 +34,7 @@ jobs:
 
       - name: Deploy to Railway
         env:
-          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.SNAKE_PROD || secrets.SNAKE_PREVIEW }}
         run: |
           echo "Deploying to ${{ steps.env.outputs.environment }}..."
-          railway whoami
-          railway link --project 426c9591-e8ee-4626-903f-8192c8b6127a --service 8887fa71-9b4c-4fd8-8e49-bf2a5051e6c3
-          railway up --environment ${{ steps.env.outputs.environment }}
+          railway up
