@@ -3,7 +3,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { db, CONTROL_TYPES } from '../db.js';
+import { db, CONTROL_TYPES, VIEW_MODES } from '../db.js';
 
 const router = Router();
 
@@ -19,6 +19,7 @@ router.get('/', async (_req: Request, res: Response) => {
       score: score.score,
       length: score.length,
       controlType: score.control_type || 'wasd-zx',
+      viewMode: score.view_mode || 'orbit',
       createdAt: score.created_at,
       rank: index + 1,
     }));
@@ -33,7 +34,7 @@ router.get('/', async (_req: Request, res: Response) => {
 // POST /api/manual - Submit a new manual score
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { name, score, length, controlType } = req.body;
+    const { name, score, length, controlType, viewMode } = req.body;
 
     // Validate required fields
     if (!name || score === undefined || length === undefined) {
@@ -66,9 +67,12 @@ router.post('/', async (req: Request, res: Response) => {
     // Validate control type (default to 'wasd-zx' for backwards compatibility)
     const validControlType = CONTROL_TYPES.includes(controlType) ? controlType : 'wasd-zx';
 
+    // Validate view mode (default to 'orbit' for backwards compatibility)
+    const validViewMode = VIEW_MODES.includes(viewMode) ? viewMode : 'orbit';
+
     // Insert score with trimmed name
     const trimmedName = name.trim();
-    const result = await db.insertManualScore(trimmedName, score, length, validControlType);
+    const result = await db.insertManualScore(trimmedName, score, length, validControlType, validViewMode);
 
     // Get rank
     const rankResult = await db.getManualRank(score);
@@ -80,6 +84,7 @@ router.post('/', async (req: Request, res: Response) => {
       score,
       length,
       controlType: validControlType,
+      viewMode: validViewMode,
       rank: rankResult.rank,
       totalScores: totalResult.count,
     });

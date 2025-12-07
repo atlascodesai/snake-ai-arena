@@ -16,11 +16,11 @@ import {
   getNewUpVector,
   wouldCollide,
   getFirstPersonHUD,
-  CONTROL_SCHEMES,
+  DEFAULT_CONTROL_SCHEME,
 } from '../game/controls';
 import AudioToggle from '../components/AudioToggle';
 import { useAudio } from '../contexts/AudioContext';
-import { api, ManualScoreResult, ControlType } from '../api/client';
+import { api, ManualScoreResult, ViewMode } from '../api/client';
 
 // Snake segment component
 function SnakeSegment({ position, isHead, hidden }: { position: Position; isHead: boolean; hidden?: boolean }) {
@@ -343,8 +343,6 @@ export default function Play() {
     deathReason: null,
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [controlType, setControlType] = useState<ControlType>('wasd-zx');
-  const [showControlPicker, setShowControlPicker] = useState(false);
 
   // Score submission state
   const [showNameInput, setShowNameInput] = useState(false);
@@ -352,6 +350,7 @@ export default function Play() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<ManualScoreResult | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [gameOverViewMode, setGameOverViewMode] = useState<ViewMode>('orbit');
 
   const directionRef = useRef<Direction | null>(null);
   const lastDirectionRef = useRef<Direction>({ x: 1, y: 0, z: 0 });
@@ -412,6 +411,7 @@ export default function Play() {
     setPlayerName('');
     setSubmitResult(null);
     setSubmitError(null);
+    setGameOverViewMode('orbit');
   }, [spawnFood]);
 
   // Submit score
@@ -425,7 +425,8 @@ export default function Play() {
         name: playerName.trim().slice(0, 20),
         score: gameState.score,
         length: gameState.snake.length,
-        controlType,
+        controlType: 'wasd-zx', // Fixed control type (simplified)
+        viewMode: gameOverViewMode,
       });
       setSubmitResult(result);
       playWin();
@@ -435,7 +436,7 @@ export default function Play() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [playerName, gameState.score, gameState.snake.length, isSubmitting, playWin, controlType]);
+  }, [playerName, gameState.score, gameState.snake.length, isSubmitting, playWin, gameOverViewMode]);
 
   // Set direction (queue it for next tick)
   const setDirection = useCallback((dir: Direction) => {
@@ -485,6 +486,8 @@ export default function Play() {
         const hitBody = prev.snake.slice(1).some(seg => posEqual(seg, newHead));
         if (hitBody) {
           playWhammy();
+          // Capture the view mode at game over time
+          setGameOverViewMode(isFirstPerson ? 'fpv' : 'orbit');
           return { ...prev, gameOver: true, deathReason: 'Hit own body' };
         }
 
@@ -518,7 +521,7 @@ export default function Play() {
 
   // Keyboard controls
   useEffect(() => {
-    const scheme = CONTROL_SCHEMES[controlType];
+    const scheme = DEFAULT_CONTROL_SCHEME;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showNameInput && !submitResult) {
@@ -549,14 +552,14 @@ export default function Play() {
 
       if (isFirstPerson) {
         // First-person controls: all relative to snake's POV (pitch/yaw)
-        // Support both WASD and Arrow keys in FPV for convenience
-        if (scheme.xzKeys.up.includes(e.key) || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        // WASD and Arrow keys both control direction
+        if (scheme.xzKeys.up.includes(e.key)) {
           setFirstPersonDirection('up');
-        } else if (scheme.xzKeys.down.includes(e.key) || e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        } else if (scheme.xzKeys.down.includes(e.key)) {
           setFirstPersonDirection('down');
-        } else if (scheme.xzKeys.left.includes(e.key) || e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        } else if (scheme.xzKeys.left.includes(e.key)) {
           setFirstPersonDirection('left');
-        } else if (scheme.xzKeys.right.includes(e.key) || e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        } else if (scheme.xzKeys.right.includes(e.key)) {
           setFirstPersonDirection('right');
         }
       } else {
@@ -587,7 +590,7 @@ export default function Play() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState.gameOver, resetGame, setDirection, setFirstPersonDirection, showNameInput, submitResult, controlType, viewRelativeControls, isFirstPerson]);
+  }, [gameState.gameOver, resetGame, setDirection, setFirstPersonDirection, showNameInput, submitResult, viewRelativeControls, isFirstPerson]);
 
   return (
     <div className="fixed inset-0 bg-dark-900 flex flex-col">
@@ -650,45 +653,12 @@ export default function Play() {
             <div>
               <h1 className="text-base font-bold text-white">Manual Play</h1>
               <p className="text-xs text-gray-400 hidden sm:block">
-                {isFirstPerson ? 'First-person view' : `${CONTROL_SCHEMES[controlType].hint} controls`}
+                {isFirstPerson ? 'First-person view' : `${DEFAULT_CONTROL_SCHEME.hint} controls`}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Control scheme picker */}
-            <div className="relative">
-              <button
-                onClick={() => setShowControlPicker(!showControlPicker)}
-                className="px-2 py-1.5 bg-dark-700 text-gray-300 text-xs font-medium rounded-lg hover:bg-dark-600 transition-colors border border-dark-600"
-              >
-                {CONTROL_SCHEMES[controlType].name}
-              </button>
-
-              {showControlPicker && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowControlPicker(false)} />
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1">
-                    {(Object.keys(CONTROL_SCHEMES) as ControlType[]).map((type) => (
-                      <button
-                        key={type}
-                        onClick={() => { setControlType(type); setShowControlPicker(false); }}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-dark-700 flex items-center justify-between ${
-                          controlType === type ? 'text-neon-green' : 'text-white'
-                        }`}
-                      >
-                        <div>
-                          <div className="font-medium">{CONTROL_SCHEMES[type].name}</div>
-                          <div className="text-xs text-gray-500">{CONTROL_SCHEMES[type].description}</div>
-                        </div>
-                        {controlType === type && <span className="text-neon-green">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
             <AudioToggle />
             <button
               onClick={resetGame}
@@ -1055,7 +1025,7 @@ export default function Play() {
                         onPointerDown={() => setDirection({ x: 0, y: -1, z: 0 })}
                         className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-pink/30 border-2 border-dark-500 active:border-neon-pink rounded-full flex items-center justify-center text-gray-300 active:text-neon-pink transition-colors select-none shadow-lg"
                       >
-                        <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.down[0].toUpperCase()}</span>
+                        <span className="font-bold text-lg">{DEFAULT_CONTROL_SCHEME.yKeys.down[0].toUpperCase()}</span>
                       </button>
                       <span className="text-[9px] text-gray-500 mt-1 rotate-12">Down</span>
                     </div>
@@ -1065,7 +1035,7 @@ export default function Play() {
                         onPointerDown={() => setDirection({ x: 0, y: 1, z: 0 })}
                         className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-blue/30 border-2 border-dark-500 active:border-neon-blue rounded-full flex items-center justify-center text-gray-300 active:text-neon-blue transition-colors select-none shadow-lg"
                       >
-                        <span className="font-bold text-lg">{CONTROL_SCHEMES[controlType].yKeys.up[0].toUpperCase()}</span>
+                        <span className="font-bold text-lg">{DEFAULT_CONTROL_SCHEME.yKeys.up[0].toUpperCase()}</span>
                       </button>
                       <span className="text-[9px] text-gray-500 mt-1 rotate-12">Up</span>
                     </div>
@@ -1080,8 +1050,8 @@ export default function Play() {
                 <span className="text-gray-500">Keys:</span>{' '}
                 <span className="text-gray-400">
                   {isFirstPerson
-                    ? `${CONTROL_SCHEMES[controlType].xzKeys.up[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.down[0].toUpperCase()} pitch, ${CONTROL_SCHEMES[controlType].xzKeys.left[0].toUpperCase()}/${CONTROL_SCHEMES[controlType].xzKeys.right[0].toUpperCase()} turn`
-                    : CONTROL_SCHEMES[controlType].hint
+                    ? 'W/S pitch, A/D turn (or Arrow keys)'
+                    : DEFAULT_CONTROL_SCHEME.hint
                   }
                 </span>
               </div>

@@ -30,12 +30,17 @@ export interface ManualScoreRow {
   score: number;
   length: number;
   control_type: string;
+  view_mode: string;
   created_at: string;
 }
 
 // Control type constants
 export const CONTROL_TYPES = ['wasd-zx', 'wasd-qe', 'arrows-ws'] as const;
 export type ControlType = typeof CONTROL_TYPES[number];
+
+// View mode constants
+export const VIEW_MODES = ['orbit', 'fpv'] as const;
+export type ViewMode = typeof VIEW_MODES[number];
 
 // ============================================
 // SQLite Implementation (Local Development)
@@ -71,6 +76,7 @@ function initSqlite() {
       score INTEGER NOT NULL,
       length INTEGER NOT NULL,
       control_type TEXT DEFAULT 'wasd-zx',
+      view_mode TEXT DEFAULT 'orbit',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -81,6 +87,13 @@ function initSqlite() {
   // Add control_type column if it doesn't exist (migration for existing DBs)
   try {
     sqliteDb.exec(`ALTER TABLE manual_scores ADD COLUMN control_type TEXT DEFAULT 'wasd-zx'`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Add view_mode column if it doesn't exist (migration for existing DBs)
+  try {
+    sqliteDb.exec(`ALTER TABLE manual_scores ADD COLUMN view_mode TEXT DEFAULT 'orbit'`);
   } catch (e) {
     // Column already exists, ignore
   }
@@ -101,14 +114,14 @@ function initSqlite() {
     getTotalCount: sqliteDb.prepare(`SELECT COUNT(*) as count FROM submissions`),
     // Manual scores queries
     getManualLeaderboard: sqliteDb.prepare(`
-      SELECT id, name, score, length, control_type, created_at
+      SELECT id, name, score, length, control_type, view_mode, created_at
       FROM manual_scores
       ORDER BY score DESC
       LIMIT 50
     `),
     insertManualScore: sqliteDb.prepare(`
-      INSERT INTO manual_scores (name, score, length, control_type)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO manual_scores (name, score, length, control_type, view_mode)
+      VALUES (?, ?, ?, ?, ?)
     `),
     getManualRank: sqliteDb.prepare(`SELECT COUNT(*) + 1 as rank FROM manual_scores WHERE score > ?`),
     getManualTotalCount: sqliteDb.prepare(`SELECT COUNT(*) as count FROM manual_scores`),
@@ -150,6 +163,7 @@ async function initPostgres() {
       score INTEGER NOT NULL,
       length INTEGER NOT NULL,
       control_type TEXT DEFAULT 'wasd-zx',
+      view_mode TEXT DEFAULT 'orbit',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -160,6 +174,13 @@ async function initPostgres() {
   // Add control_type column if it doesn't exist (migration for existing DBs)
   try {
     await pgPool.query(`ALTER TABLE manual_scores ADD COLUMN IF NOT EXISTS control_type TEXT DEFAULT 'wasd-zx'`);
+  } catch (e) {
+    // Column already exists or other error, ignore
+  }
+
+  // Add view_mode column if it doesn't exist (migration for existing DBs)
+  try {
+    await pgPool.query(`ALTER TABLE manual_scores ADD COLUMN IF NOT EXISTS view_mode TEXT DEFAULT 'orbit'`);
   } catch (e) {
     // Column already exists or other error, ignore
   }
@@ -258,7 +279,7 @@ export const db = {
   async getManualLeaderboard(): Promise<ManualScoreRow[]> {
     if (isPostgres && pgPool) {
       const result = await pgPool.query(`
-        SELECT id, name, score, length, COALESCE(control_type, 'wasd-zx') as control_type, created_at
+        SELECT id, name, score, length, COALESCE(control_type, 'wasd-zx') as control_type, COALESCE(view_mode, 'orbit') as view_mode, created_at
         FROM manual_scores
         ORDER BY score DESC
         LIMIT 50
@@ -274,17 +295,18 @@ export const db = {
     name: string,
     score: number,
     length: number,
-    controlType: string = 'wasd-zx'
+    controlType: string = 'wasd-zx',
+    viewMode: string = 'orbit'
   ): Promise<{ lastInsertRowid: number }> {
     if (isPostgres && pgPool) {
       const result = await pgPool.query(
-        `INSERT INTO manual_scores (name, score, length, control_type)
-         VALUES ($1, $2, $3, $4) RETURNING id`,
-        [name, score, length, controlType]
+        `INSERT INTO manual_scores (name, score, length, control_type, view_mode)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [name, score, length, controlType, viewMode]
       );
       return { lastInsertRowid: result.rows[0].id };
     } else if (sqliteQueries) {
-      const result = sqliteQueries.insertManualScore.run(name, score, length, controlType);
+      const result = sqliteQueries.insertManualScore.run(name, score, length, controlType, viewMode);
       return { lastInsertRowid: Number(result.lastInsertRowid) };
     }
     throw new Error('Database not initialized');

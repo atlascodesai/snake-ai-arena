@@ -1,6 +1,9 @@
 /**
  * Control scheme definitions for the Play page
- * Extracted from Play.tsx for better organization
+ * Simplified to a single fixed control scheme:
+ * - WASD or Arrow keys for XZ movement
+ * - O (up) / K (down) for Y-axis in external view
+ * - In FPV mode, all 4 directions (WASD/arrows) control pitch/yaw
  */
 
 import type { ControlType } from '../../api/client';
@@ -13,50 +16,26 @@ export interface ControlScheme {
   hint: string;
 }
 
+// Single unified control scheme
+export const DEFAULT_CONTROL_SCHEME: ControlScheme = {
+  name: 'Default',
+  description: 'WASD/Arrows + O/K',
+  xzKeys: {
+    up: ['w', 'W', 'ArrowUp'],
+    down: ['s', 'S', 'ArrowDown'],
+    left: ['a', 'A', 'ArrowLeft'],
+    right: ['d', 'D', 'ArrowRight'],
+  },
+  yKeys: {
+    up: ['o', 'O'],
+    down: ['k', 'K'],
+  },
+  hint: 'WASD/Arrows + O/K',
+};
+
+// Legacy control schemes (kept for backwards compatibility with stored scores)
 export const CONTROL_SCHEMES: Record<ControlType, ControlScheme> = {
-  'wasd-zx': {
-    name: 'WASD + ZX',
-    description: 'Classic layout',
-    xzKeys: {
-      up: ['w', 'W'],
-      down: ['s', 'S'],
-      left: ['a', 'A'],
-      right: ['d', 'D'],
-    },
-    yKeys: {
-      up: ['z', 'Z'],
-      down: ['x', 'X'],
-    },
-    hint: 'WASD + Z/X',
-  },
-  'wasd-qe': {
-    name: 'WASD + QE',
-    description: 'Ergonomic',
-    xzKeys: {
-      up: ['w', 'W'],
-      down: ['s', 'S'],
-      left: ['a', 'A'],
-      right: ['d', 'D'],
-    },
-    yKeys: {
-      up: ['q', 'Q'],
-      down: ['e', 'E'],
-    },
-    hint: 'WASD + Q/E',
-  },
-  'arrows-ws': {
-    name: 'Arrows + WS',
-    description: 'Two hands',
-    xzKeys: {
-      up: ['ArrowUp'],
-      down: ['ArrowDown'],
-      left: ['ArrowLeft'],
-      right: ['ArrowRight'],
-    },
-    yKeys: {
-      up: ['w', 'W'],
-      down: ['s', 'S'],
-    },
-    hint: 'Arrows + W/S',
-  },
+  'wasd-zx': DEFAULT_CONTROL_SCHEME,
+  'wasd-qe': DEFAULT_CONTROL_SCHEME,
+  'arrows-ws': DEFAULT_CONTROL_SCHEME,
 };
