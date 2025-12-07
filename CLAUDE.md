@@ -119,9 +119,20 @@ feature/* → preview → main
 
 ### Deployment Methods
 
-**Option 1: Local Deploy (Required for private submodule content)**
+**GitHub Actions CI/CD (Automated)**
 
-The project contains a private submodule (`src/private/`) that GitHub cannot access. Use `deploy.sh` to include private content:
+Pushing to `preview` or `main` triggers automatic deployment via GitHub Actions:
+
+```bash
+git push origin preview   # Auto-deploys to preview
+git push origin main      # Auto-deploys to production
+```
+
+The workflow (`.github/workflows/deploy.yml`) handles the private submodule automatically using repository secrets.
+
+**Local Deploy (Manual/Fallback)**
+
+For manual deployments or if CI/CD is not configured:
 
 ```bash
 ./deploy.sh           # Deploy to preview (default)
@@ -129,38 +140,36 @@ The project contains a private submodule (`src/private/`) that GitHub cannot acc
 ./deploy.sh production  # Deploy to production
 ```
 
-The script temporarily unhides the submodule `.git` reference so Railway uploads the actual files.
+### CI/CD Setup (Required Secrets)
 
-**Option 2: Git Push (Public content only)**
+Add these secrets to GitHub repository settings (Settings → Secrets → Actions):
 
-For changes that don't touch private content, git push triggers auto-deploy:
+| Secret | Description | How to get |
+|--------|-------------|------------|
+| `RAILWAY_TOKEN` | Railway API token | [Railway Dashboard](https://railway.app/account/tokens) → New Token |
+| `PRIVATE_REPO_PAT` | GitHub PAT with repo access | [GitHub Settings](https://github.com/settings/tokens) → New token (classic) → Select `repo` scope |
 
-```bash
-git push origin preview   # Auto-deploys to preview
-git push origin main      # Auto-deploys to production
-```
-
-⚠️ Note: Private submodule content will show placeholders if deployed via git push.
+The PAT must have access to the private submodule repository.
 
 ### Workflow
 
 1. **Development:** Work on `preview` branch or feature branches
-2. **Test locally:** Run tests before pushing
-3. **Deploy:** Use `./deploy.sh` to deploy with private content
-4. **Ship to prod:** Merge preview → main, then `./deploy.sh production`
+2. **Test locally:** Run `npm run prepush` before pushing
+3. **Deploy to preview:** `git push origin preview` (auto-deploys)
+4. **Ship to prod:** Merge preview → main, push (auto-deploys)
 
 ### Commands
 
 ```bash
-# Deploy to preview (with private content)
-./deploy.sh preview
-
-# Deploy to production (with private content)
-./deploy.sh production
-
-# Git-only deploy (public content only)
+# Deploy to preview (push triggers CI/CD)
 git push origin preview
-git push origin main
+
+# Deploy to production (push triggers CI/CD)
+git checkout main && git merge preview && git push origin main
+
+# Manual deploy (fallback)
+./deploy.sh preview
+./deploy.sh production
 ```
 
 ## Architecture

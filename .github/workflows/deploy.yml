@@ -1,0 +1,40 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches:
+      - main
+      - preview
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Use PAT to access private submodule
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+          submodules: recursive
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.com/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=preview" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Deploying to ${{ steps.env.outputs.environment }}..."
+          railway up --environment ${{ steps.env.outputs.environment }}
