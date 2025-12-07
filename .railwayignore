@@ -19,6 +19,6 @@ Dockerfile.test
 docker-compose*.yml
 
 # Large source files in private submodule (not used by app)
-src/private/*.pptx
-src/private/*.pdf
-src/private/*.mp4
+*.pptx
+*.pdf
+*.mp4
