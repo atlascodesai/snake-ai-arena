@@ -1,0 +1,48 @@
+# Robots.txt for Snake AI Arena
+# https://snake3js.com
+
+# Allow all standard crawlers
+User-agent: *
+Allow: /
+Disallow: /aidemo
+
+# AI/LLM Crawlers - Welcome!
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Perplexity
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+# Block AI demo from all
+User-agent: *
+Disallow: /aidemo
+
+# Sitemaps
+Sitemap: https://snake3js.com/sitemap.xml
+
+# LLM-friendly content
+# See also: /llms.txt for LLM-optimized site description

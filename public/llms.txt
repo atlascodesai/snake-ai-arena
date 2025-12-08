@@ -1,0 +1,56 @@
+# Snake AI Arena
+
+> A 3D Snake game where users write AI algorithms to compete on a global leaderboard.
+
+## Overview
+
+Snake AI Arena is an interactive platform for learning and experimenting with AI pathfinding algorithms. Players can write JavaScript code to control a snake, benchmark their algorithms, and compete against others.
+
+## Main Features
+
+- **AI Editor**: Write custom JavaScript algorithms to control the snake
+- **Live Preview**: Watch your algorithm play in real-time 3D visualization
+- **Benchmarking**: Run your algorithm through multiple games to get average scores
+- **Leaderboard**: Compete globally with other players' algorithms
+- **Manual Play**: Play the classic snake game with keyboard or touch controls
+
+## Pages
+
+- `/` - Dashboard with demo and leaderboard preview
+- `/editor` - Code editor for creating AI algorithms
+- `/play` - Manual play mode
+- `/leaderboard` - Full competition leaderboard
+- `/about` - About the project
+
+## Algorithm API
+
+Algorithms receive a game state object and must return a direction:
+
+```javascript
+function decideDirection(gameState) {
+  // gameState contains:
+  // - head: {x, y, z} - snake head position
+  // - food: {x, y, z} - food position
+  // - body: [{x, y, z}, ...] - snake body segments
+  // - direction: current direction vector
+  // - gridSize: size of the game grid
+
+  // Return: 'up', 'down', 'left', 'right', 'forward', or 'backward'
+  return 'up';
+}
+```
+
+## Tech Stack
+
+- Frontend: React, Three.js, TypeScript
+- Backend: Express, PostgreSQL
+- Deployment: Railway
+
+## Links
+
+- Website: https://snake3js.com
+- GitHub: https://github.com/atlascodesai/snake-ai-arena
+
+## Contact
+
+For questions or contributions, visit our GitHub repository.

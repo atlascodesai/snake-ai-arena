@@ -61,13 +61,14 @@ const createMockDb = () => ({
       .slice(0, 50);
   },
 
-  async insertManualScore(name: string, score: number, length: number, controlType: string) {
+  async insertManualScore(name: string, score: number, length: number, controlType: string, viewMode: string = 'orbit') {
     const entry = {
       id: this.manualNextId++,
       name,
       score,
       length,
       control_type: controlType,
+      view_mode: viewMode,
       created_at: new Date().toISOString(),
     };
     this.manualScores.push(entry);
@@ -153,13 +154,14 @@ vi.mock('../db.js', () => {
         .slice(0, 50);
     },
 
-    async insertManualScore(name: string, score: number, length: number, controlType: string) {
+    async insertManualScore(name: string, score: number, length: number, controlType: string, viewMode: string = 'orbit') {
       const entry = {
         id: this.manualNextId++,
         name,
         score,
         length,
         control_type: controlType,
+        view_mode: viewMode,
         created_at: new Date().toISOString(),
       };
       this.manualScores.push(entry);
@@ -190,6 +192,7 @@ vi.mock('../db.js', () => {
     db: mockInstance,
     default: mockInstance,
     CONTROL_TYPES: ['wasd-zx', 'wasd-qe', 'arrows-ws'] as const,
+    VIEW_MODES: ['orbit', 'fpv'] as const,
     SubmissionRow: {},
     ManualScoreRow: {},
   };
@@ -403,8 +406,8 @@ function algorithm(ctx) {
     describe('GET /api/manual', () => {
       beforeEach(() => {
         getMockDb().manualScores = [
-          { id: 1, name: 'Player1', score: 500, length: 53, control_type: 'wasd-zx', created_at: '2024-01-01' },
-          { id: 2, name: 'Player2', score: 300, length: 33, control_type: 'arrows-ws', created_at: '2024-01-02' },
+          { id: 1, name: 'Player1', score: 500, length: 53, control_type: 'wasd-zx', view_mode: 'orbit', created_at: '2024-01-01' },
+          { id: 2, name: 'Player2', score: 300, length: 33, control_type: 'arrows-ws', view_mode: 'fpv', created_at: '2024-01-02' },
         ];
       });
 
@@ -416,6 +419,14 @@ function algorithm(ctx) {
         expect(response.body.length).toBe(2);
         // Should be sorted by score DESC
         expect(response.body[0].score).toBe(500);
+      });
+
+      it('should include viewMode in response', async () => {
+        const response = await request(app).get('/api/manual');
+
+        expect(response.status).toBe(200);
+        expect(response.body[0].viewMode).toBe('orbit');
+        expect(response.body[1].viewMode).toBe('fpv');
       });
     });
 
@@ -447,6 +458,50 @@ function algorithm(ctx) {
           });
 
         expect(response.status).toBe(400);
+      });
+
+      it('should accept viewMode parameter', async () => {
+        const response = await request(app)
+          .post('/api/manual')
+          .send({
+            name: 'FPVPlayer',
+            score: 100,
+            length: 13,
+            controlType: 'wasd-zx',
+            viewMode: 'fpv',
+          });
+
+        expect(response.status).toBe(201);
+        expect(response.body.viewMode).toBe('fpv');
+      });
+
+      it('should default viewMode to orbit when not provided', async () => {
+        const response = await request(app)
+          .post('/api/manual')
+          .send({
+            name: 'OrbitPlayer',
+            score: 50,
+            length: 8,
+            controlType: 'wasd-zx',
+          });
+
+        expect(response.status).toBe(201);
+        expect(response.body.viewMode).toBe('orbit');
+      });
+
+      it('should default invalid viewMode to orbit', async () => {
+        const response = await request(app)
+          .post('/api/manual')
+          .send({
+            name: 'InvalidView',
+            score: 70,
+            length: 10,
+            controlType: 'wasd-zx',
+            viewMode: 'invalid',
+          });
+
+        expect(response.status).toBe(201);
+        expect(response.body.viewMode).toBe('orbit');
       });
     });
   });

@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import GameViewer from '../components/GameViewer';
+import GameViewerFPV from '../components/GameViewerFPV';
 import Leaderboard from '../components/Leaderboard';
 import AudioToggle from '../components/AudioToggle';
 import { useAudio } from '../contexts/AudioContext';
@@ -17,7 +17,7 @@ import { HeadlessGame } from '../game/HeadlessGame';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { startLoop, stopLoop, playWhammy, playWin, isMuted } = useAudio();
+  const { startLoop, stopLoop, playWhammy, playWin, musicEnabled } = useAudio();
   const prevScoreRef = useRef(0);
   const [submissions, setSubmissions] = useState<LeaderboardEntry[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [scoreDelta, setScoreDelta] = useState<number | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isFirstPerson, setIsFirstPerson] = useState(false);
 
   const gameRef = useRef<HeadlessGame | null>(null);
   const intervalRef = useRef<number | null>(null);
@@ -47,6 +48,13 @@ export default function Dashboard() {
       stopLoop();
     };
   }, [stopLoop]);
+
+  // Start loop when user unmutes (if game is running)
+  useEffect(() => {
+    if (musicEnabled && gameRef.current && !gameRef.current.getState().gameOver) {
+      startLoop(150);
+    }
+  }, [musicEnabled, startLoop]);
 
   // Fetch leaderboard
   useEffect(() => {
@@ -189,6 +197,11 @@ export default function Dashboard() {
   }, [navigate]);
 
   const selectedSubmission = submissions.find(s => s.id === selectedId);
+
+  // Handle FPV toggle - instant switch
+  const handleToggleFPV = useCallback(() => {
+    setIsFirstPerson(prev => !prev);
+  }, []);
 
   return (
     <div className="h-screen bg-dark-900 flex flex-col overflow-hidden">
@@ -345,8 +358,15 @@ export default function Dashboard() {
             </div>
 
             {/* Game canvas */}
-            <div className="flex-1 bg-dark-800 rounded-xl border border-dark-700 overflow-hidden min-h-0">
-              <GameViewer gameState={gameState} className="w-full h-full" />
+            <div className="flex-1 bg-dark-800 rounded-xl border border-dark-700 overflow-hidden min-h-0 relative">
+              <GameViewerFPV
+                gameState={gameState}
+                className="w-full h-full"
+                isFirstPerson={isFirstPerson}
+                onToggleFPV={handleToggleFPV}
+                showFPVToggle={true}
+              />
+
             </div>
 
             {/* Score/Length when expanded */}

@@ -3,23 +3,74 @@
  * Information about the Snake AI Arena demo
  */
 
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function About() {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white overflow-y-auto">
+    <div className="min-h-full bg-dark-900 text-white pb-8">
       {/* Header */}
-      <header className="border-b border-dark-700 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <span>←</span>
-            <span>Back to Arena</span>
-          </button>
+      <header className="border-b border-dark-700 px-3 py-2 md:px-4 md:py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Hamburger Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 text-gray-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
+                aria-label="Menu"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1">
+                    <button
+                      onClick={() => { navigate('/'); setMenuOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                    >
+                      <span>🏠</span><span>Arena Home</span>
+                    </button>
+                    <button
+                      onClick={() => { navigate('/editor'); setMenuOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                    >
+                      <span>✏️</span><span>Editor</span>
+                    </button>
+                    <button
+                      onClick={() => { navigate('/play'); setMenuOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                    >
+                      <span>🎮</span><span>Manual Play</span>
+                    </button>
+                    <button
+                      onClick={() => { navigate('/leaderboard'); setMenuOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                    >
+                      <span>🏆</span><span>Leaderboard</span>
+                    </button>
+                    <hr className="my-1 border-dark-700" />
+                    <button
+                      onClick={() => { navigate('/about'); setMenuOpen(false); }}
+                      className="w-full px-4 py-2 text-left text-neon-green hover:bg-dark-700 flex items-center gap-2"
+                    >
+                      <span>ℹ️</span><span>About</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <span className="text-lg md:text-xl">ℹ️</span>
+            <h1 className="text-sm md:text-base font-bold text-white">About</h1>
+          </div>
         </div>
       </header>
 

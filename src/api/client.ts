@@ -41,12 +41,16 @@ export interface PlacementPreview {
 // Control type options
 export type ControlType = 'wasd-zx' | 'wasd-qe' | 'arrows-ws';
 
+// View mode options
+export type ViewMode = 'orbit' | 'fpv';
+
 export interface ManualScoreEntry {
   id: number;
   name: string;
   score: number;
   length: number;
   controlType: ControlType;
+  viewMode: ViewMode;
   createdAt: string;
   rank: number;
 }
@@ -57,6 +61,7 @@ export interface ManualScoreResult {
   score: number;
   length: number;
   controlType: ControlType;
+  viewMode: ViewMode;
   rank: number;
   totalScores: number;
 }
@@ -113,6 +118,7 @@ export const api = {
     score: number;
     length: number;
     controlType?: ControlType;
+    viewMode?: ViewMode;
   }): Promise<ManualScoreResult> {
     const res = await fetch(`${API_URL}/api/manual`, {
       method: 'POST',
