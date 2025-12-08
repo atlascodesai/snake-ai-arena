@@ -153,18 +153,26 @@ The PAT must have access to the private submodule repository.
 
 ### Workflow
 
-1. **Development:** Work on `preview` branch or feature branches
-2. **Test locally:** Run `npm run prepush` before pushing
-3. **Deploy to preview:** `git push origin preview` (auto-deploys)
-4. **Ship to prod:** Merge preview → main, push (auto-deploys)
+1. **Feature development:** Create feature branch from `preview`, build and test locally
+2. **Merge to preview:** Merge feature branch into `preview`, push (auto-deploys to preview environment)
+3. **Ship to prod:** Create PR from `preview` → `main`, review and merge (auto-deploys to production)
 
 ### Commands
 
 ```bash
-# Deploy to preview (push triggers CI/CD)
-git push origin preview
+# Feature branch workflow
+git checkout preview
+git checkout -b feature/my-feature    # Create feature branch
+# ... make changes, test locally ...
+git add . && git commit -m "Add feature"
+git checkout preview && git merge feature/my-feature
+git push origin preview               # Auto-deploys to preview
 
-# Deploy to production (push triggers CI/CD)
+# Production release via PR (recommended)
+gh pr create --base main --head preview --title "Release: feature description"
+gh pr merge <PR_NUMBER> --merge       # Merge from CLI after review
+
+# Direct production deploy (use sparingly)
 git checkout main && git merge preview && git push origin main
 
 # Manual deploy (fallback)
