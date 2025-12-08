@@ -17,7 +17,7 @@ import { HeadlessGame } from '../game/HeadlessGame';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { startLoop, stopLoop, playWhammy, playWin, isMuted } = useAudio();
+  const { startLoop, stopLoop, playWhammy, playWin, musicEnabled } = useAudio();
   const prevScoreRef = useRef(0);
   const [submissions, setSubmissions] = useState<LeaderboardEntry[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -55,10 +55,10 @@ export default function Dashboard() {
 
   // Start loop when user unmutes (if game is running)
   useEffect(() => {
-    if (!isMuted && gameRef.current && !gameRef.current.getState().gameOver) {
+    if (musicEnabled && gameRef.current && !gameRef.current.getState().gameOver) {
       startLoop(150);
     }
-  }, [isMuted, startLoop]);
+  }, [musicEnabled, startLoop]);
 
   // Fetch leaderboard
   useEffect(() => {

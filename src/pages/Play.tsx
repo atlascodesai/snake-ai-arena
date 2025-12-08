@@ -595,9 +595,9 @@ export default function Play() {
   return (
     <div className="fixed inset-0 bg-dark-900 flex flex-col">
       {/* Header */}
-      <header className="flex-shrink-0 border-b border-dark-700 px-3 py-2">
+      <header className="flex-shrink-0 border-b border-dark-700 px-3 py-2 md:px-4 md:py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 md:gap-3">
             {/* Hamburger Menu */}
             <div className="relative">
               <button
@@ -649,9 +649,9 @@ export default function Play() {
               )}
             </div>
 
-            <span className="text-2xl">🐍</span>
+            <span className="text-lg md:text-xl">🎮</span>
             <div>
-              <h1 className="text-base font-bold text-white">Manual Play</h1>
+              <h1 className="text-sm md:text-base font-bold text-white">Manual Play</h1>
               <p className="text-xs text-gray-400 hidden sm:block">
                 {isFirstPerson ? 'First-person view' : `${DEFAULT_CONTROL_SCHEME.hint} controls`}
               </p>

@@ -1,5 +1,6 @@
 /**
  * Global Audio Context
+ * Separate controls for sound effects (SFX) and music
  */
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
@@ -14,43 +15,59 @@ function getAudioContext(): AudioContext {
   return audioCtx;
 }
 
-// PYL-style bouncing frequency pattern
+// PYL-style bouncing frequency pattern (for music loop)
 const FREQ_PATTERN = [1, 1.25, 1.5, 1.25, 1, 0.8, 1, 1.33, 1.5, 1.33, 1, 0.9, 1.1, 1.4, 1.2, 1, 0.85, 1.15];
 const BASE_FREQ = 400;
 const VOLUME = 0.15;
 
 interface AudioContextType {
-  isMuted: boolean;
-  isPlaying: boolean;
-  toggleMute: () => void;
-  playTick: (index: number) => void;
+  // SFX controls (on by default)
+  sfxEnabled: boolean;
+  toggleSfx: () => void;
   playWhammy: () => void;
   playWin: () => void;
+
+  // Music controls (off by default)
+  musicEnabled: boolean;
+  isPlaying: boolean;
+  toggleMusic: () => void;
   startLoop: (interval?: number) => void;
   stopLoop: () => void;
   setSpeed: (interval: number) => void;
+
+  // Legacy compatibility
+  isMuted: boolean;
+  toggleMute: () => void;
+  playTick: (index: number) => void;
 }
 
 const AudioCtx = createContext<AudioContextType | null>(null);
 
 export function AudioProvider({ children }: { children: ReactNode }) {
-  // Start muted - user must explicitly click speaker to enable
-  const [isMuted, setIsMuted] = useState(true);
+  // SFX: ON by default
+  const [sfxEnabled, setSfxEnabled] = useState(true);
+  // Music: OFF by default
+  const [musicEnabled, setMusicEnabled] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const intervalRef = useRef<number | null>(null);
   const beatCountRef = useRef(0);
-  const isMutedRef = useRef(isMuted);
+  const sfxEnabledRef = useRef(sfxEnabled);
+  const musicEnabledRef = useRef(musicEnabled);
   const speedRef = useRef(120);
 
-  // Keep ref in sync
+  // Keep refs in sync
   useEffect(() => {
-    isMutedRef.current = isMuted;
-  }, [isMuted]);
+    sfxEnabledRef.current = sfxEnabled;
+  }, [sfxEnabled]);
 
-  // Play a single tick/beep - PYL board bounce sound
+  useEffect(() => {
+    musicEnabledRef.current = musicEnabled;
+  }, [musicEnabled]);
+
+  // Play a single tick/beep - PYL board bounce sound (music)
   const playTick = useCallback((index: number) => {
-    if (isMutedRef.current) return;
+    if (!musicEnabledRef.current) return;
 
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') ctx.resume();
@@ -83,9 +100,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     osc2.stop(ctx.currentTime + 0.1);
   }, []);
 
-  // Whammy sound - descending buzz (snake death)
+  // Whammy sound - descending buzz (snake death) - SFX
   const playWhammy = useCallback(() => {
-    if (isMutedRef.current) return;
+    if (!sfxEnabledRef.current) return;
 
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') ctx.resume();
@@ -106,9 +123,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     osc.stop(ctx.currentTime + 0.8);
   }, []);
 
-  // Win sound - happy arpeggio (eating food)
+  // Win sound - happy arpeggio (eating food) - SFX
   const playWin = useCallback(() => {
-    if (isMutedRef.current) return;
+    if (!sfxEnabledRef.current) return;
 
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') ctx.resume();
@@ -145,14 +162,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
   }, [playTick]);
 
-  // Start the loop
+  // Start the music loop
   const startLoop = useCallback((interval?: number) => {
     if (intervalRef.current) return;
 
     if (interval) speedRef.current = interval;
 
-    // Don't start if muted
-    if (isMutedRef.current) {
+    // Don't start if music is disabled
+    if (!musicEnabledRef.current) {
       return;
     }
 
@@ -168,7 +185,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }, speedRef.current);
   }, [playTick]);
 
-  // Stop the loop
+  // Stop the music loop
   const stopLoop = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -177,22 +194,41 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     setIsPlaying(false);
   }, []);
 
-  // Toggle mute
-  const toggleMute = useCallback(() => {
-    setIsMuted(prev => {
-      const newMuted = !prev;
-      isMutedRef.current = newMuted;
-      if (newMuted) {
-        // Muting - stop the loop
-        stopLoop();
-      } else {
-        // Unmuting - resume audio context (browser requires user gesture)
+  // Toggle SFX
+  const toggleSfx = useCallback(() => {
+    setSfxEnabled(prev => {
+      const newEnabled = !prev;
+      sfxEnabledRef.current = newEnabled;
+      // Resume audio context on first interaction
+      if (newEnabled) {
         const ctx = getAudioContext();
         if (ctx.state === 'suspended') ctx.resume();
       }
-      return newMuted;
+      return newEnabled;
+    });
+  }, []);
+
+  // Toggle Music
+  const toggleMusic = useCallback(() => {
+    setMusicEnabled(prev => {
+      const newEnabled = !prev;
+      musicEnabledRef.current = newEnabled;
+      if (newEnabled) {
+        // Resume audio context on enable
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+      } else {
+        // Stop the loop when disabling
+        stopLoop();
+      }
+      return newEnabled;
     });
   }, [stopLoop]);
+
+  // Legacy toggleMute - toggles both (for backwards compatibility)
+  const toggleMute = useCallback(() => {
+    toggleMusic();
+  }, [toggleMusic]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -205,15 +241,24 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   return (
     <AudioCtx.Provider value={{
-      isMuted,
-      isPlaying,
-      toggleMute,
-      playTick,
+      // SFX
+      sfxEnabled,
+      toggleSfx,
       playWhammy,
       playWin,
+
+      // Music
+      musicEnabled,
+      isPlaying,
+      toggleMusic,
       startLoop,
       stopLoop,
       setSpeed,
+
+      // Legacy
+      isMuted: !musicEnabled,
+      toggleMute,
+      playTick,
     }}>
       {children}
     </AudioCtx.Provider>
