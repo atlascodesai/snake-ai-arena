@@ -6,7 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import CodeEditor from '../components/CodeEditor';
-import GameViewer from '../components/GameViewer';
+import GameViewerFPV from '../components/GameViewerFPV';
 import SubmissionModal from '../components/SubmissionModal';
 import AudioToggle from '../components/AudioToggle';
 import { useAudio } from '../contexts/AudioContext';
@@ -74,6 +74,13 @@ export default function Editor() {
 
   // Feature flag: allow benchmark to interrupt running tests
   const [allowBenchmarkInterrupt, setAllowBenchmarkInterrupt] = useState(true);
+
+  // FPV mode
+  const [isFirstPerson, setIsFirstPerson] = useState(false);
+
+  // Countdown for benchmark
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<number | null>(null);
 
   // Stop audio when component unmounts (navigation away)
   useEffect(() => {
@@ -276,7 +283,7 @@ export default function Editor() {
   }, [code, pauseGame, startLoop, stopLoop, playWhammy, playWin]);
 
   // Run full benchmark (10 games in 30 seconds) with VISUAL playback
-  const handleBenchmark = useCallback(async () => {
+  const runBenchmark = useCallback(async () => {
     setError(null);
     // Save previous result before clearing
     if (benchmarkResult) {
@@ -401,6 +408,42 @@ export default function Editor() {
       stopLoop();
     }
   }, [code, stopGame, benchmarkResult, startLoop, stopLoop, playWhammy, playWin]);
+
+  // Handle benchmark button click - show countdown then run
+  const handleBenchmark = useCallback(() => {
+    // Clear any existing countdown
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+    }
+
+    // Start 3-2-1 countdown
+    setCountdown(3);
+
+    countdownRef.current = window.setInterval(() => {
+      setCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          // Countdown finished - start benchmark
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+          // Run benchmark after countdown
+          runBenchmark();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, [runBenchmark]);
+
+  // Cleanup countdown on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, []);
 
   // Submit to leaderboard
   const handleSubmit = useCallback(async () => {
@@ -637,10 +680,31 @@ export default function Editor() {
 
           {/* Game viewer */}
           <div className="flex-1 min-h-0 relative">
-            <GameViewer gameState={gameState} className="w-full h-full" />
+            <GameViewerFPV
+              gameState={gameState}
+              className="w-full h-full"
+              isFirstPerson={isFirstPerson}
+              onToggleFPV={() => setIsFirstPerson(!isFirstPerson)}
+              showFPVToggle={true}
+            />
+
+            {/* Countdown overlay */}
+            {countdown !== null && (
+              <div className="absolute inset-0 flex items-center justify-center bg-dark-900/80 backdrop-blur-sm z-10">
+                <div className="text-center">
+                  <div className="text-8xl font-bold text-neon-blue animate-pulse">
+                    {countdown}
+                  </div>
+                  <div className="text-gray-400 mt-4">Benchmark starting...</div>
+                  {isFirstPerson && (
+                    <div className="text-neon-pink mt-2 text-sm">FPV mode enabled</div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Game Over overlay */}
-            {gameState.gameOver && !isBenchmarking && (
+            {gameState.gameOver && !isBenchmarking && countdown === null && (
               <div className="absolute inset-0 flex items-center justify-center bg-dark-900/70">
                 <div className="text-center">
                   <div className="text-3xl mb-2">💀</div>
@@ -695,10 +759,15 @@ export default function Editor() {
               )}
               <button
                 onClick={handleBenchmark}
-                disabled={isBenchmarking || (!allowBenchmarkInterrupt && (isRunning || isPaused))}
+                disabled={isBenchmarking || countdown !== null || (!allowBenchmarkInterrupt && (isRunning || isPaused))}
                 className="flex-1 px-3 py-1.5 bg-neon-blue text-dark-900 text-sm font-medium rounded hover:bg-neon-blue/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
-                {isBenchmarking ? (
+                {countdown !== null ? (
+                  <>
+                    <span className="animate-pulse">⏱</span>
+                    <span>Starting in {countdown}...</span>
+                  </>
+                ) : isBenchmarking ? (
                   <>
                     <span className="animate-pulse">⏱</span>
                     <span>Running... {Math.round((currentGameNum / 10) * 100)}%</span>

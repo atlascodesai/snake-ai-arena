@@ -37,13 +37,9 @@ export default function Dashboard() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFirstPerson, setIsFirstPerson] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
 
   const gameRef = useRef<HeadlessGame | null>(null);
   const intervalRef = useRef<number | null>(null);
-  const countdownRef = useRef<number | null>(null);
-  const isPausedRef = useRef(false);
 
 
   // Stop audio when component unmounts (navigation away)
@@ -138,9 +134,6 @@ export default function Dashboard() {
     intervalRef.current = window.setInterval(() => {
       if (!gameRef.current) return;
 
-      // Skip tick if paused (during countdown)
-      if (isPausedRef.current) return;
-
       const state = gameRef.current.tick();
       setGameState(state);
 
@@ -205,51 +198,9 @@ export default function Dashboard() {
 
   const selectedSubmission = submissions.find(s => s.id === selectedId);
 
-  // Handle FPV toggle with countdown
+  // Handle FPV toggle - instant switch
   const handleToggleFPV = useCallback(() => {
-    if (isFirstPerson) {
-      // Switching back to orbit view - no countdown needed
-      setIsFirstPerson(false);
-      isPausedRef.current = false;
-      setIsPaused(false);
-      return;
-    }
-
-    // Switching to FPV - start countdown
-    isPausedRef.current = true;
-    setIsPaused(true);
-    setCountdown(3);
-
-    // Clear any existing countdown
-    if (countdownRef.current) {
-      clearInterval(countdownRef.current);
-    }
-
-    countdownRef.current = window.setInterval(() => {
-      setCountdown(prev => {
-        if (prev === null || prev <= 1) {
-          // Countdown finished
-          if (countdownRef.current) {
-            clearInterval(countdownRef.current);
-            countdownRef.current = null;
-          }
-          setIsFirstPerson(true);
-          isPausedRef.current = false;
-          setIsPaused(false);
-          return null;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [isFirstPerson]);
-
-  // Cleanup countdown on unmount
-  useEffect(() => {
-    return () => {
-      if (countdownRef.current) {
-        clearInterval(countdownRef.current);
-      }
-    };
+    setIsFirstPerson(prev => !prev);
   }, []);
 
   return (
@@ -416,31 +367,6 @@ export default function Dashboard() {
                 showFPVToggle={true}
               />
 
-              {/* Countdown overlay */}
-              {countdown !== null && (
-                <div className="absolute inset-0 flex items-center justify-center bg-dark-900/80 backdrop-blur-sm z-10">
-                  <div className="text-center">
-                    <div className="text-6xl font-bold text-neon-pink animate-pulse mb-4">
-                      {countdown}
-                    </div>
-                    <div className="text-gray-300 text-lg">Entering FPV mode...</div>
-                    <button
-                      onClick={() => {
-                        if (countdownRef.current) {
-                          clearInterval(countdownRef.current);
-                          countdownRef.current = null;
-                        }
-                        setCountdown(null);
-                        isPausedRef.current = false;
-                        setIsPaused(false);
-                      }}
-                      className="mt-4 px-4 py-2 text-gray-400 hover:text-white text-sm"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Score/Length when expanded */}
