@@ -794,9 +794,9 @@ export default function Editor() {
               </label>
             </div>
 
-            {/* Scoreboard - compact, always visible */}
-            <div className="px-2 pb-2">
-              <div className="bg-dark-700 rounded p-2">
+            {/* Scoreboard - compact, always visible, with chat icon cutout */}
+            <div className="px-2 pb-2 relative">
+              <div className="bg-dark-700 rounded p-2 relative">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] text-gray-400 uppercase tracking-wider">Scoreboard</span>
                   {(isBenchmarking || benchmarkResult) && (
@@ -815,14 +815,15 @@ export default function Editor() {
                   )}
                 </div>
 
-                {/* Score grid - compact, 5x2 layout to leave room for chat icon */}
-                <div className="grid grid-cols-5 gap-0.5 pr-16">
+                {/* Score grid - compact, 5x2 layout with chat icon accommodation */}
+                <div className="grid grid-cols-5 gap-0.5 relative">
                   {Array.from({ length: 10 }).map((_, i) => {
                     const score = liveScores[i] ?? (benchmarkResult?.scores[i]);
                     const prevScore = previousResult?.scores[i];
                     const isActive = isBenchmarking && i === currentGameNum - 1;
                     const isCompleted = score !== undefined;
                     const diff = isCompleted && prevScore !== undefined ? score - prevScore : null;
+                    const isLastCell = i === 9; // #10 cell needs special treatment for chat icon
 
                     return (
                       <div
@@ -832,6 +833,7 @@ export default function Editor() {
                           ${isActive ? 'bg-neon-blue/30 border border-neon-blue animate-pulse' : ''}
                           ${isCompleted && !isActive ? 'bg-dark-600' : ''}
                           ${!isCompleted && !isActive ? 'bg-dark-800 border border-dark-600' : ''}
+                          ${isLastCell ? 'rounded-br-3xl' : ''}
                         `}
                       >
                         <div className="text-[8px] text-gray-500">#{i + 1}</div>
@@ -847,6 +849,10 @@ export default function Editor() {
                       </div>
                     );
                   })}
+                  {/* Chat icon accommodation - quarter circle overlay */}
+                  <div className="absolute -bottom-1 -right-1 w-16 h-16 pointer-events-none">
+                    <div className="w-full h-full bg-dark-800 rounded-tl-full" />
+                  </div>
                 </div>
 
                 {/* Final results with placement preview - compact */}
