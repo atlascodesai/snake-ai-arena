@@ -153,7 +153,7 @@ The PAT must have access to the private submodule repository.
 
 ### Workflow
 
-1. **Feature development:** Create feature branch from `preview`, build and test locally
+1. **Feature development:** Create feature branch from `preview`, build and test locally (or just build directly on `preview` for smaller changes)
 2. **Merge to preview:** Merge feature branch into `preview`, push (auto-deploys to preview environment)
 3. **Ship to prod:** Create PR from `preview` → `main`, review and merge (auto-deploys to production)
 
