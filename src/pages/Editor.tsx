@@ -89,6 +89,21 @@ export default function Editor() {
     };
   }, [stopLoop]);
 
+  // Hide Chatwoot on editor page
+  useEffect(() => {
+    const chatwootWidget = document.querySelector('.woot-widget-bubble') as HTMLElement;
+    const chatwootHolder = document.querySelector('.woot-widget-holder') as HTMLElement;
+
+    if (chatwootWidget) chatwootWidget.style.display = 'none';
+    if (chatwootHolder) chatwootHolder.style.display = 'none';
+
+    return () => {
+      // Show Chatwoot again when leaving editor
+      if (chatwootWidget) chatwootWidget.style.display = '';
+      if (chatwootHolder) chatwootHolder.style.display = '';
+    };
+  }, []);
+
   // Load forked algorithm
   useEffect(() => {
     if (id) {
@@ -815,7 +830,7 @@ export default function Editor() {
                   )}
                 </div>
 
-                {/* Score grid - compact, 5x2 layout with chat icon accommodation */}
+                {/* Score grid - compact, 5x2 layout */}
                 <div className="grid grid-cols-5 gap-0.5 relative">
                   {Array.from({ length: 10 }).map((_, i) => {
                     const score = liveScores[i] ?? (benchmarkResult?.scores[i]);
@@ -823,7 +838,6 @@ export default function Editor() {
                     const isActive = isBenchmarking && i === currentGameNum - 1;
                     const isCompleted = score !== undefined;
                     const diff = isCompleted && prevScore !== undefined ? score - prevScore : null;
-                    const isLastCell = i === 9; // #10 cell needs special treatment for chat icon
 
                     return (
                       <div
@@ -833,7 +847,6 @@ export default function Editor() {
                           ${isActive ? 'bg-neon-blue/30 border border-neon-blue animate-pulse' : ''}
                           ${isCompleted && !isActive ? 'bg-dark-600' : ''}
                           ${!isCompleted && !isActive ? 'bg-dark-800 border border-dark-600' : ''}
-                          ${isLastCell ? 'rounded-br-3xl' : ''}
                         `}
                       >
                         <div className="text-[8px] text-gray-500">#{i + 1}</div>
@@ -849,10 +862,6 @@ export default function Editor() {
                       </div>
                     );
                   })}
-                  {/* Chat icon accommodation - quarter circle overlay */}
-                  <div className="absolute -bottom-1 -right-1 w-16 h-16 pointer-events-none">
-                    <div className="w-full h-full bg-dark-800 rounded-tl-full" />
-                  </div>
                 </div>
 
                 {/* Final results with placement preview - compact */}
