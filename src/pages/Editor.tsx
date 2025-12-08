@@ -815,8 +815,8 @@ export default function Editor() {
                   )}
                 </div>
 
-                {/* Score grid - compact */}
-                <div className="grid grid-cols-10 gap-0.5">
+                {/* Score grid - compact, 5x2 layout to leave room for chat icon */}
+                <div className="grid grid-cols-5 gap-0.5 pr-16">
                   {Array.from({ length: 10 }).map((_, i) => {
                     const score = liveScores[i] ?? (benchmarkResult?.scores[i]);
                     const prevScore = previousResult?.scores[i];
