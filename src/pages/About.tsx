@@ -9,7 +9,7 @@ export default function About() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white overflow-y-auto">
+    <div className="min-h-full bg-dark-900 text-white pb-8">
       {/* Header */}
       <header className="border-b border-dark-700 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">

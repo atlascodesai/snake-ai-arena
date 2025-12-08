@@ -256,7 +256,7 @@ export default function GameViewerFPV({
       </Canvas>
 
       {/* Score overlay */}
-      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+      <div className="absolute bottom-4 left-4 flex items-center gap-3">
         <div className="bg-dark-800/80 backdrop-blur px-4 py-2 rounded-lg border border-dark-600">
           <span className="text-gray-400 text-sm">Score</span>
           <span className="ml-2 text-neon-green font-bold text-xl">{gameState.score}</span>
@@ -269,7 +269,7 @@ export default function GameViewerFPV({
 
       {/* FPV controls */}
       {showFPVToggle && (
-        <div className="absolute bottom-4 right-4 flex items-center gap-2">
+        <div className="absolute top-4 right-4 flex items-center gap-2">
           {/* FOV slider - only shown in first-person view */}
           {isFirstPerson && (
             <div className="flex items-center gap-2 bg-dark-800/90 backdrop-blur px-3 py-2 rounded-lg border border-dark-600">

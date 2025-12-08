@@ -8,7 +8,7 @@ import AIDemo from './pages/AIDemo';
 
 function App() {
   return (
-    <div className="min-h-screen bg-dark-900">
+    <div className="min-h-screen bg-dark-900 overflow-auto">
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/editor" element={<Editor />} />
