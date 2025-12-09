@@ -40,8 +40,8 @@ const allowedOrigins = [
   'https://web-preview-e0a3.up.railway.app',
 ];
 
-// In development, allow localhost
-if (!isProduction) {
+// In development or local testing, allow localhost
+if (!isProduction || process.env.ALLOW_LOCALHOST) {
   allowedOrigins.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001');
 }
 
@@ -70,13 +70,13 @@ app.use(helmet({
         "'unsafe-eval'",   // Required for Monaco Editor and user algorithm execution
         "https://app.chatwoot.com",
         "https://fonts.googleapis.com",
-        "https://cdn.jsdelivr.net", // Monaco Editor CDN
+        "https://cdn.jsdelivr.net", // Required for Monaco Editor CDN
       ],
       styleSrc: [
         "'self'",
         "'unsafe-inline'", // Required for Tailwind and Monaco
         "https://fonts.googleapis.com",
-        "https://cdn.jsdelivr.net", // Monaco Editor CDN
+        "https://cdn.jsdelivr.net", // Required for Monaco Editor CDN
       ],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
