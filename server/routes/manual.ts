@@ -46,13 +46,13 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Name must be 1-20 characters' });
     }
 
-    // Validate score
-    if (typeof score !== 'number' || score < 0 || score > 1000000) {
+    // Validate score (must be finite number within range)
+    if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 1000000) {
       return res.status(400).json({ error: 'Invalid score' });
     }
 
-    // Validate length
-    if (typeof length !== 'number' || length < 3 || length > 4096) {
+    // Validate length (must be finite integer within range)
+    if (typeof length !== 'number' || !Number.isFinite(length) || !Number.isInteger(length) || length < 3 || length > 4096) {
       return res.status(400).json({ error: 'Invalid length' });
     }
 
