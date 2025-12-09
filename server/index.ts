@@ -4,6 +4,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';
@@ -34,6 +35,37 @@ const submissionLimiter = rateLimit({
 app.use(cors());
 app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
+
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for Vite dev and inline scripts
+        "'unsafe-eval'",   // Required for Monaco Editor and user algorithm execution
+        "https://app.chatwoot.com",
+        "https://fonts.googleapis.com",
+      ],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'", // Required for Tailwind and Monaco
+        "https://fonts.googleapis.com",
+      ],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: [
+        "'self'",
+        "https://app.chatwoot.com",
+        "wss://app.chatwoot.com",
+      ],
+      frameSrc: ["'self'", "https://app.chatwoot.com"],
+      workerSrc: ["'self'", "blob:"], // For Web Workers
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Required for Three.js
+}));
 
 // API Routes - apply rate limiter to POST submissions
 app.use('/api/leaderboard', (req, res, next) => {

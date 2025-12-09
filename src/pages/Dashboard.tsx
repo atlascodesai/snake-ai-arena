@@ -215,6 +215,8 @@ export default function Dashboard() {
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="p-2 text-gray-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
                 aria-label="Menu"
+                aria-expanded={menuOpen}
+                aria-haspopup="true"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -224,45 +226,54 @@ export default function Dashboard() {
               {/* Dropdown Menu */}
               {menuOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1">
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                  <nav
+                    className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1"
+                    role="menu"
+                    aria-label="Main navigation"
+                  >
                     <button
                       onClick={() => { navigate('/'); setMenuOpen(false); }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                      role="menuitem"
                     >
-                      <span>🏠</span>
+                      <span aria-hidden="true">🏠</span>
                       <span>Arena Home</span>
                     </button>
                     <button
                       onClick={() => { navigate('/editor'); setMenuOpen(false); }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                      role="menuitem"
                     >
-                      <span>✏️</span>
+                      <span aria-hidden="true">✏️</span>
                       <span>Editor</span>
                     </button>
                     <button
                       onClick={() => { navigate('/play'); setMenuOpen(false); }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                      role="menuitem"
                     >
-                      <span>🎮</span>
+                      <span aria-hidden="true">🎮</span>
                       <span>Manual Play</span>
                     </button>
                     <button
                       onClick={() => { navigate('/leaderboard'); setMenuOpen(false); }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
+                      role="menuitem"
                     >
-                      <span>🏆</span>
+                      <span aria-hidden="true">🏆</span>
                       <span>Leaderboard</span>
                     </button>
-                    <hr className="my-1 border-dark-700" />
+                    <hr className="my-1 border-dark-700" aria-hidden="true" />
                     <button
                       onClick={() => { navigate('/about'); setMenuOpen(false); }}
                       className="w-full px-4 py-2 text-left text-gray-400 hover:bg-dark-700 hover:text-white flex items-center gap-2"
+                      role="menuitem"
                     >
-                      <span>ℹ️</span>
+                      <span aria-hidden="true">ℹ️</span>
                       <span>About</span>
                     </button>
-                  </div>
+                  </nav>
                 </>
               )}
             </div>
