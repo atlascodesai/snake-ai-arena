@@ -4,18 +4,9 @@
 
 ## Development
 
-### Local Development (without Docker)
+### Local Development (Docker Required)
 
-```bash
-npm install          # Install dependencies
-npm run dev          # Start dev server (frontend: 5173, API: 3001)
-npm run build        # Build for production
-npm run lint         # Run ESLint
-```
-
-### Docker Development (Recommended)
-
-Uses PostgreSQL for dev/prod parity with Railway:
+Docker is required for local development to run PostgreSQL:
 
 ```bash
 npm run docker:dev        # Start dev environment with PostgreSQL
@@ -191,7 +182,7 @@ git checkout main && git merge preview && git push origin main
 ### Backend (Express + PostgreSQL)
 - `server/index.ts` - Express server entry
 - `server/routes/` - API routes (leaderboard, manual scores)
-- `server/db.ts` - Database abstraction (SQLite fallback, PostgreSQL prod)
+- `server/db.ts` - PostgreSQL database interface
 - `server/app.ts` - Express app factory (for testing)
 
 ### Key Files
@@ -203,9 +194,9 @@ git checkout main && git merge preview && git push origin main
 
 ## Database
 
-- **Local Docker:** PostgreSQL (`docker compose up`)
-- **Production:** PostgreSQL (Railway)
-- **Fallback:** SQLite (`data/snake.db`) - when DATABASE_URL not set
+PostgreSQL is used for both local development and production:
+- **Local:** PostgreSQL via Docker (`npm run docker:dev`)
+- **Production:** PostgreSQL on Railway
 
 Tables:
 - `submissions` - AI algorithm submissions with scores
@@ -224,8 +215,7 @@ Dockerfile.test         # Testing container
 ## Environment Variables
 
 ```bash
-DATABASE_URL=        # PostgreSQL connection (auto-set in Docker)
-SQLITE_PATH=         # Custom SQLite path (fallback only)
+DATABASE_URL=        # PostgreSQL connection (required, auto-set in Docker)
 PORT=3001            # Server port
 AIDEMO_PASSWORD=     # Protected route password (optional)
 ```

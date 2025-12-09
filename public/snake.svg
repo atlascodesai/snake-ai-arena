@@ -1,14 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="snakeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00ff88"/>
-      <stop offset="100%" style="stop-color:#00ffff"/>
-    </linearGradient>
-  </defs>
-  <circle cx="50" cy="50" r="45" fill="url(#snakeGrad)" opacity="0.9"/>
-  <circle cx="35" cy="40" r="8" fill="#0a0a0f"/>
-  <circle cx="65" cy="40" r="8" fill="#0a0a0f"/>
-  <circle cx="37" cy="38" r="3" fill="#fff"/>
-  <circle cx="67" cy="38" r="3" fill="#fff"/>
-  <path d="M 30 60 Q 50 75 70 60" stroke="#0a0a0f" stroke-width="4" fill="none" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Chunky snake body -->
+  <line x1="50.0" y1="62.0" x2="45.3" y2="62.0" stroke="#4CAF50" stroke-width="4.0" stroke-linecap="round"/>
+  <line x1="45.3" y1="62.0" x2="40.6" y2="60.0" stroke="#4CAF50" stroke-width="4.6" stroke-linecap="round"/>
+  <line x1="40.6" y1="60.0" x2="36.8" y2="56.2" stroke="#4CAF50" stroke-width="5.1" stroke-linecap="round"/>
+  <line x1="36.8" y1="56.2" x2="34.5" y2="51.0" stroke="#4CAF50" stroke-width="5.7" stroke-linecap="round"/>
+  <line x1="34.5" y1="51.0" x2="34.4" y2="44.9" stroke="#4CAF50" stroke-width="6.2" stroke-linecap="round"/>
+  <line x1="34.4" y1="44.9" x2="36.7" y2="39.0" stroke="#4CAF50" stroke-width="6.8" stroke-linecap="round"/>
+  <line x1="36.7" y1="39.0" x2="41.3" y2="34.1" stroke="#4CAF50" stroke-width="7.4" stroke-linecap="round"/>
+  <line x1="41.3" y1="34.1" x2="47.6" y2="31.1" stroke="#4CAF50" stroke-width="7.9" stroke-linecap="round"/>
+  <line x1="47.6" y1="31.1" x2="55.0" y2="30.7" stroke="#4CAF50" stroke-width="8.5" stroke-linecap="round"/>
+  <line x1="55.0" y1="30.7" x2="62.2" y2="33.2" stroke="#4CAF50" stroke-width="9.0" stroke-linecap="round"/>
+  <line x1="62.2" y1="33.2" x2="68.3" y2="38.4" stroke="#4CAF50" stroke-width="9.6" stroke-linecap="round"/>
+  <line x1="68.3" y1="38.4" x2="72.2" y2="45.8" stroke="#4CAF50" stroke-width="10.2" stroke-linecap="round"/>
+  <line x1="72.2" y1="45.8" x2="73.0" y2="54.4" stroke="#4CAF50" stroke-width="10.7" stroke-linecap="round"/>
+  <line x1="73.0" y1="54.4" x2="70.5" y2="63.0" stroke="#4CAF50" stroke-width="11.3" stroke-linecap="round"/>
+  <line x1="70.5" y1="63.0" x2="64.8" y2="70.4" stroke="#4CAF50" stroke-width="11.8" stroke-linecap="round"/>
+  <line x1="64.8" y1="70.4" x2="56.5" y2="75.3" stroke="#4CAF50" stroke-width="12.4" stroke-linecap="round"/>
+  <line x1="56.5" y1="75.3" x2="46.6" y2="76.7" stroke="#4CAF50" stroke-width="13.0" stroke-linecap="round"/>
+  <line x1="46.6" y1="76.7" x2="36.6" y2="74.4" stroke="#4CAF50" stroke-width="13.5" stroke-linecap="round"/>
+  <line x1="36.6" y1="74.4" x2="27.9" y2="68.3" stroke="#4CAF50" stroke-width="14.1" stroke-linecap="round"/>
+  <line x1="27.9" y1="68.3" x2="21.8" y2="59.1" stroke="#4CAF50" stroke-width="14.6" stroke-linecap="round"/>
+  <line x1="21.8" y1="59.1" x2="19.6" y2="48.1" stroke="#4CAF50" stroke-width="15.2" stroke-linecap="round"/>
+  <line x1="19.6" y1="48.1" x2="21.6" y2="36.6" stroke="#4CAF50" stroke-width="15.8" stroke-linecap="round"/>
+  <line x1="21.6" y1="36.6" x2="27.9" y2="26.5" stroke="#4CAF50" stroke-width="16.3" stroke-linecap="round"/>
+  <line x1="27.9" y1="26.5" x2="37.8" y2="19.2" stroke="#4CAF50" stroke-width="16.9" stroke-linecap="round"/>
+
+  <!-- Big dumb head -->
+  <circle cx="37.8" cy="19.2" r="14" fill="#4CAF50"/>
+  
+  <!-- Googly eyes - different sizes -->
+  <circle cx="32.807714815083465" cy="15.20580278738111" r="6" fill="white"/>
+  <circle cx="33.807714815083465" cy="17.20580278738111" r="3" fill="black"/>
+  
+  <circle cx="41.807714815083465" cy="13.20580278738111" r="5" fill="white"/>
+  <circle cx="40.807714815083465" cy="14.20580278738111" r="2.5" fill="black"/>
+  
+  <!-- Derpy tongue -->
+  <path d="M 45.807714815083465 14.20580278738111 Q 51.807714815083465 4.20580278738111, 55.807714815083465 7.20580278738111" 
+        fill="none" stroke="#F44336" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 55.807714815083465 7.20580278738111 L 60.807714815083465 2.20580278738111" 
+        fill="none" stroke="#F44336" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 55.807714815083465 7.20580278738111 L 61.807714815083465 9.20580278738111" 
+        fill="none" stroke="#F44336" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

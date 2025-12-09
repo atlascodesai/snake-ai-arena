@@ -132,8 +132,21 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Code must be 100KB or less' });
     }
 
-    if (typeof avgScore !== 'number' || avgScore < 0 || avgScore > 1000000) {
+    if (typeof avgScore !== 'number' || !Number.isFinite(avgScore) || avgScore < 0 || avgScore > 1000000) {
       return res.status(400).json({ error: 'Invalid score' });
+    }
+
+    // Validate optional numeric fields
+    if (maxScore !== undefined && (typeof maxScore !== 'number' || !Number.isFinite(maxScore) || maxScore < 0 || maxScore > 1000000)) {
+      return res.status(400).json({ error: 'Invalid max score' });
+    }
+
+    if (survivalRate !== undefined && (typeof survivalRate !== 'number' || !Number.isFinite(survivalRate) || survivalRate < 0 || survivalRate > 100)) {
+      return res.status(400).json({ error: 'Invalid survival rate' });
+    }
+
+    if (gamesPlayed !== undefined && (typeof gamesPlayed !== 'number' || !Number.isFinite(gamesPlayed) || gamesPlayed < 1 || gamesPlayed > 1000)) {
+      return res.status(400).json({ error: 'Invalid games played' });
     }
 
     // Count lines of code (non-empty, non-comment lines)

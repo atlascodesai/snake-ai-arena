@@ -31,8 +31,31 @@ const submissionLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Middleware
-app.use(cors());
+// CORS configuration - restrict to allowed origins
+const allowedOrigins = [
+  'https://snake3js.com',
+  'https://p.snake3js.com',
+  'https://www.snake3js.com',
+  'https://web-production-e0a3.up.railway.app',
+  'https://web-preview-e0a3.up.railway.app',
+];
+
+// In development, allow localhost
+if (!isProduction) {
+  allowedOrigins.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001');
+}
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (same-origin, Postman, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
@@ -97,7 +120,7 @@ function checkAidemoAuth(req: any, res: any, next: any) {
     return next();
   }
   // Not authenticated - serve login page or check password
-  if (req.method === 'POST' && req.body?.password === aidemoPassword) {
+  if (req.method === 'POST' && req.body?.password === aidemoPassword && aidemoPassword) {
     const newSession = Math.random().toString(36).substring(2);
     aidemoSessions.add(newSession);
     res.cookie('aidemo_session', newSession, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
@@ -144,7 +167,7 @@ async function start() {
     app.listen(PORT, () => {
       console.log(`🐍 Snake AI Arena API running on port ${PORT}`);
       console.log(`   Environment: ${isProduction ? 'production' : 'development'}`);
-      console.log(`   Database: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'SQLite'}`);
+      console.log(`   Database: PostgreSQL`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

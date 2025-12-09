@@ -32,8 +32,9 @@ Snake AI Arena is a 3D Snake game platform where users write AI algorithms in Ja
 │  └── POST /api/manual-scores   - Submit manual play score       │
 ├─────────────────────────────────────────────────────────────────┤
 │  Middleware:                                                     │
+│  ├── Helmet.js (CSP, security headers)                          │
+│  ├── CORS (restricted to allowed origins)                       │
 │  ├── Rate limiting (100 submissions/hour per IP)                │
-│  ├── CORS configuration                                          │
 │  └── Static file serving                                         │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
@@ -78,18 +79,19 @@ Snake AI Arena is a 3D Snake game platform where users write AI algorithms in Ja
 - Sessions lost on server restart
 - Acceptable because: Demo page is non-critical, password re-entry is minor friction
 
-### 3. Dual Database Support (PostgreSQL + SQLite)
+### 3. PostgreSQL Only (No SQLite)
 
-**Decision:** Support both PostgreSQL (production/Docker) and SQLite (quick local dev).
+**Decision:** Use PostgreSQL exclusively for both development and production.
 
 **Rationale:**
-- PostgreSQL: Production parity with Railway deployment
-- SQLite: Zero-config local development without Docker
-- Same interface abstracted in `server/db.ts`
+- Dev/prod parity: Same database in all environments eliminates "works on my machine" issues
+- Simplified codebase: Single database implementation, fewer code paths to maintain
+- Docker is easy: `npm run docker:dev` starts PostgreSQL with zero configuration
+- Reduced attack surface: One less dependency to audit and maintain
 
-**When to use each:**
-- `npm run docker:dev` - PostgreSQL (recommended)
-- `npm run dev` without Docker - SQLite fallback
+**Development:**
+- Local development requires Docker: `npm run docker:dev`
+- `DATABASE_URL` environment variable is required (auto-set by Docker)
 
 ### 4. User Code Execution via `new Function()`
 
@@ -147,7 +149,7 @@ Snake AI Arena is a 3D Snake game platform where users write AI algorithms in Ja
 ├── server/
 │   ├── index.ts         # Express entry point
 │   ├── routes/          # API route handlers
-│   └── db.ts            # Database abstraction
+│   └── db.ts            # PostgreSQL database interface
 ├── public/              # Static assets
 ├── e2e/                 # Playwright E2E tests
 └── docs/                # Documentation
@@ -165,16 +167,24 @@ Snake AI Arena is a 3D Snake game platform where users write AI algorithms in Ja
 
 ## Security Model
 
-1. **Client-side:** Users can only affect their own browser
-2. **API rate limiting:** 100 submissions/hour per IP
-3. **Input validation:** Score ranges, name length, code size
-4. **No server-side code execution:** All user code runs client-side
-5. **Parameterized queries:** SQL injection prevention
+1. **Client-side isolation:** User code runs in their own browser only
+2. **Security headers:** Helmet.js provides CSP, X-Frame-Options, X-Content-Type-Options, etc.
+3. **CORS restrictions:** API only accepts requests from allowed origins (snake3js.com, localhost in dev)
+4. **API rate limiting:** 100 submissions/hour per IP
+5. **Input validation:**
+   - Score ranges with `Number.isFinite()` checks (prevents NaN/Infinity attacks)
+   - Name length validation
+   - Code size limits
+6. **Parameterized queries:** SQL injection prevention via pg parameterized queries
+7. **No server-side code execution:** All user code runs client-side
 
 ## Future Considerations
 
 - [x] Add Content Security Policy headers (helmet.js)
 - [x] Implement React Error Boundary
+- [x] CORS restricted to allowed origins
+- [x] Input validation with Number.isFinite()
+- [x] Remove SQLite, PostgreSQL-only
 - [ ] Add lazy loading for routes
 - [ ] Consider Web Worker for algorithm execution (better isolation)
 - [ ] Add replay system for submitted algorithms
