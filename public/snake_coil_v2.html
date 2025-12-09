@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Silly Snake v2 - Zoomed</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #1a1a2e;
+    }
+    canvas {
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="200" height="200"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const size = 200;
+    const center = size / 2;
+
+    // Snake properties - ZOOMED: larger sizes to fill more of the frame
+    const snake = {
+      segments: [],
+      numSegments: 20,        // fewer segments for tighter coil
+      segmentLength: 10,      // longer segments
+      headSize: 22,           // bigger head (was 14)
+      blinkTimer: 0,
+      isBlinking: false,
+      tongueOut: 0
+    };
+
+    // Initialize snake segments along a spiral
+    for (let i = 0; i < snake.numSegments; i++) {
+      snake.segments.push({ x: center, y: center });
+    }
+
+    let time = 0;
+
+    function updateSnake() {
+      time += 0.02;
+
+      // Head moves in a coiling spiral pattern that evolves over time
+      const head = snake.segments[0];
+
+      // Spiral that breathes in and out - ZOOMED: larger radius
+      const breathe = Math.sin(time * 0.5) * 0.12 + 1;
+      const spiralSpeed = time * 1.5;
+      const maxRadius = 55 * breathe;  // was 35, now fills more
+      const minRadius = 12;            // was 8
+
+      // Create a looping spiral motion
+      const loopPhase = (time * 0.3) % (Math.PI * 2);
+      const radiusT = (Math.sin(loopPhase) + 1) / 2; // 0 to 1, oscillating
+      const currentRadius = minRadius + radiusT * (maxRadius - minRadius);
+
+      head.x = center + Math.cos(spiralSpeed) * currentRadius;
+      head.y = center + Math.sin(spiralSpeed) * currentRadius;
+
+      // Each segment follows the one before it
+      for (let i = 1; i < snake.segments.length; i++) {
+        const seg = snake.segments[i];
+        const prev = snake.segments[i - 1];
+        const dx = prev.x - seg.x;
+        const dy = prev.y - seg.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > snake.segmentLength) {
+          seg.x += (dx / dist) * (dist - snake.segmentLength);
+          seg.y += (dy / dist) * (dist - snake.segmentLength);
+        }
+      }
+
+      // Blink randomly
+      snake.blinkTimer++;
+      if (snake.blinkTimer > 80 && Math.random() < 0.03) {
+        snake.isBlinking = true;
+        snake.blinkTimer = 0;
+      }
+      if (snake.isBlinking && snake.blinkTimer > 5) {
+        snake.isBlinking = false;
+      }
+
+      // Tongue flick
+      snake.tongueOut = Math.sin(time * 4) > 0.5 ? Math.sin(time * 4) : 0;
+    }
+
+    function drawSnake() {
+      ctx.clearRect(0, 0, size, size);
+
+      // Draw body segments (tail to head, getting thicker) - ZOOMED: thicker body
+      for (let i = snake.segments.length - 1; i >= 1; i--) {
+        const seg = snake.segments[i];
+        const prev = snake.segments[i - 1];
+        const thickness = 6 + (1 - i / snake.segments.length) * 22;  // was 4 + 14
+
+        ctx.beginPath();
+        ctx.lineWidth = thickness;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#4CAF50';
+        ctx.moveTo(seg.x, seg.y);
+        ctx.lineTo(prev.x, prev.y);
+        ctx.stroke();
+      }
+
+      // Head
+      const head = snake.segments[0];
+      const neck = snake.segments[1];
+      const angle = Math.atan2(head.y - neck.y, head.x - neck.x);
+
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, snake.headSize, 0, Math.PI * 2);
+      ctx.fillStyle = '#4CAF50';
+      ctx.fill();
+
+      // Tongue - ZOOMED: bigger tongue
+      if (snake.tongueOut > 0) {
+        const tongueLength = 20 * snake.tongueOut;  // was 15
+        const tongueX = head.x + Math.cos(angle) * (snake.headSize + tongueLength);
+        const tongueY = head.y + Math.sin(angle) * (snake.headSize + tongueLength);
+        const tongueStartX = head.x + Math.cos(angle) * snake.headSize;
+        const tongueStartY = head.y + Math.sin(angle) * snake.headSize;
+
+        ctx.beginPath();
+        ctx.lineWidth = 3.5;  // was 2.5
+        ctx.strokeStyle = '#F44336';
+        ctx.lineCap = 'round';
+        ctx.moveTo(tongueStartX, tongueStartY);
+        ctx.lineTo(tongueX, tongueY);
+        ctx.stroke();
+
+        // Fork
+        const forkLen = 8;  // was 6
+        ctx.beginPath();
+        ctx.moveTo(tongueX, tongueY);
+        ctx.lineTo(tongueX + Math.cos(angle + 0.5) * forkLen, tongueY + Math.sin(angle + 0.5) * forkLen);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tongueX, tongueY);
+        ctx.lineTo(tongueX + Math.cos(angle - 0.5) * forkLen, tongueY + Math.sin(angle - 0.5) * forkLen);
+        ctx.stroke();
+      }
+
+      // Eyes - googly and uneven, positioned on the head - ZOOMED: bigger eyes
+      const leftEyeX = head.x + Math.cos(angle + 0.7) * 12;   // was 8
+      const leftEyeY = head.y + Math.sin(angle + 0.7) * 12;
+      const rightEyeX = head.x + Math.cos(angle - 0.5) * 14;  // was 9
+      const rightEyeY = head.y + Math.sin(angle - 0.5) * 14;
+
+      const eyeHeight = snake.isBlinking ? 0.15 : 1;
+
+      // Left eye (bigger)
+      ctx.beginPath();
+      ctx.save();
+      ctx.translate(leftEyeX, leftEyeY);
+      ctx.scale(1, eyeHeight);
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);  // was 6
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.restore();
+
+      // Left pupil
+      if (!snake.isBlinking) {
+        ctx.beginPath();
+        ctx.arc(leftEyeX + 1.5, leftEyeY + 3, 4.5, 0, Math.PI * 2);  // was 1, 2, 3
+        ctx.fillStyle = 'black';
+        ctx.fill();
+      }
+
+      // Right eye (smaller)
+      ctx.beginPath();
+      ctx.save();
+      ctx.translate(rightEyeX, rightEyeY);
+      ctx.scale(1, eyeHeight);
+      ctx.arc(0, 0, 7.5, 0, Math.PI * 2);  // was 5
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.restore();
+
+      // Right pupil
+      if (!snake.isBlinking) {
+        ctx.beginPath();
+        ctx.arc(rightEyeX - 1.5, rightEyeY + 1.5, 3.75, 0, Math.PI * 2);  // was -1, 1, 2.5
+        ctx.fillStyle = 'black';
+        ctx.fill();
+      }
+    }
+
+    function animate() {
+      updateSnake();
+      drawSnake();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
