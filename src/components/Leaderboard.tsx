@@ -4,6 +4,7 @@
  */
 
 import { Submission } from '../game/types';
+import { AnimatedSnake } from './AnimatedSnake';
 
 interface LeaderboardProps {
   submissions: Submission[];
@@ -66,7 +67,9 @@ export default function Leaderboard({
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center text-gray-400">
-          <div className="text-4xl mb-2">🐍</div>
+          <div className="mb-2 flex justify-center">
+            <AnimatedSnake size={48} />
+          </div>
           <div>No submissions yet</div>
           <div className="text-sm">Be the first!</div>
         </div>

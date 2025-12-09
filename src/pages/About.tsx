@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AnimatedSnake } from '../components/AnimatedSnake';
 
 export default function About() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ export default function About() {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
-          <span className="text-5xl">🐍</span>
+          <AnimatedSnake size={64} />
           <div>
             <h1 className="text-3xl font-bold">Snake AI Arena</h1>
             <p className="text-gray-400">An AI Coding Demo</p>

@@ -16,6 +16,7 @@ import { templateCode, demoAlgorithm } from '../game/algorithms';
 import { compileAlgorithm } from '../game/AlgorithmRunner';
 import { HeadlessGame } from '../game/HeadlessGame';
 import { MAX_FRAMES } from '../game/utils';
+import { AnimatedSnake } from '../components/AnimatedSnake';
 
 interface BenchmarkResult {
   avgScore: number;
@@ -534,7 +535,7 @@ export default function Editor() {
             </button>
             <div className="h-4 md:h-5 w-px bg-dark-600" />
             <div className="flex items-center gap-1.5 md:gap-2">
-              <span className="text-base md:text-lg">🐍</span>
+              <AnimatedSnake size={28} />
               <h1 className="text-xs md:text-sm font-bold text-white">Editor</h1>
             </div>
           </div>
