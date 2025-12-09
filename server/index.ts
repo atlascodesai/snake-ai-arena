@@ -70,11 +70,13 @@ app.use(helmet({
         "'unsafe-eval'",   // Required for Monaco Editor and user algorithm execution
         "https://app.chatwoot.com",
         "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net", // Monaco Editor CDN
       ],
       styleSrc: [
         "'self'",
         "'unsafe-inline'", // Required for Tailwind and Monaco
         "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net", // Monaco Editor CDN
       ],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
