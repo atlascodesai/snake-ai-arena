@@ -1,11 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface AnimatedSnakeProps {
   size?: number;
   className?: string;
+  clickable?: boolean;
 }
 
-export function AnimatedSnake({ size = 200, className = '' }: AnimatedSnakeProps) {
+function SnakeCanvas({ size, className = '' }: { size: number; className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
 
@@ -209,5 +211,60 @@ export function AnimatedSnake({ size = 200, className = '' }: AnimatedSnakeProps
       className={className}
       style={{ background: 'transparent' }}
     />
+  );
+}
+
+function SnakeModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <SnakeCanvas size={300} />
+        <button
+          onClick={onClose}
+          className="absolute -top-2 -right-2 w-8 h-8 bg-dark-700 hover:bg-dark-600 rounded-full flex items-center justify-center text-gray-400 hover:text-white transition-colors"
+          aria-label="Close"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+export function AnimatedSnake({ size = 200, className = '', clickable = true }: AnimatedSnakeProps) {
+  const [showModal, setShowModal] = useState(false);
+
+  if (!clickable) {
+    return <SnakeCanvas size={size} className={className} />;
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="cursor-pointer hover:scale-110 transition-transform"
+        aria-label="View larger snake animation"
+      >
+        <SnakeCanvas size={size} className={className} />
+      </button>
+      {showModal && <SnakeModal onClose={() => setShowModal(false)} />}
+    </>
   );
 }
