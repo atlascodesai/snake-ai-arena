@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Silly Snake v3 - Perfect Loop</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #1a1a2e;
+    }
+    canvas {
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="200" height="200"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const size = 200;
+    const center = size / 2;
+
+    // Snake properties - ZOOMED version
+    const snake = {
+      segments: [],
+      numSegments: 20,
+      segmentLength: 10,
+      headSize: 22,
+      blinkTimer: 0,
+      isBlinking: false,
+      tongueOut: 0
+    };
+
+    for (let i = 0; i < snake.numSegments; i++) {
+      snake.segments.push({ x: center, y: center });
+    }
+
+    let time = 0;
+
+    // PERFECT LOOP MATH:
+    // We want all cycles to complete in exactly 200 frames
+    // At time increment of 0.02, that's time = 4.0 at frame 200
+    //
+    // Spiral: time * 1.5 should = 2π at time=4 → 1.5 * 4 = 6 ≈ 2π (close enough, 6/2π = 0.955)
+    // Actually let's use: spiralSpeed = time * (Math.PI / 2) → at time=4, that's 2π exactly
+    //
+    // Breathing: sin(time * (Math.PI / 2)) → full cycle at time=4
+    // Loop phase: (time * (Math.PI / 2)) % (2π) → full cycle at time=4
+
+    function updateSnake() {
+      time += 0.02;
+
+      const head = snake.segments[0];
+
+      // All cycles sync at 200 frames (time = 4.0)
+      const cycleSpeed = Math.PI / 2;  // 2π per 4 time units = 200 frames
+
+      const breathe = Math.sin(time * cycleSpeed) * 0.12 + 1;
+      const spiralAngle = time * cycleSpeed;
+      const maxRadius = 55 * breathe;
+      const minRadius = 12;
+
+      // Loop phase synced to same cycle
+      const radiusT = (Math.sin(time * cycleSpeed) + 1) / 2;
+      const currentRadius = minRadius + radiusT * (maxRadius - minRadius);
+
+      head.x = center + Math.cos(spiralAngle) * currentRadius;
+      head.y = center + Math.sin(spiralAngle) * currentRadius;
+
+      for (let i = 1; i < snake.segments.length; i++) {
+        const seg = snake.segments[i];
+        const prev = snake.segments[i - 1];
+        const dx = prev.x - seg.x;
+        const dy = prev.y - seg.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > snake.segmentLength) {
+          seg.x += (dx / dist) * (dist - snake.segmentLength);
+          seg.y += (dy / dist) * (dist - snake.segmentLength);
+        }
+      }
+
+      // Blink randomly (this won't loop perfectly but that's fine)
+      snake.blinkTimer++;
+      if (snake.blinkTimer > 80 && Math.random() < 0.03) {
+        snake.isBlinking = true;
+        snake.blinkTimer = 0;
+      }
+      if (snake.isBlinking && snake.blinkTimer > 5) {
+        snake.isBlinking = false;
+      }
+
+      // Tongue flick synced to cycle
+      snake.tongueOut = Math.sin(time * cycleSpeed * 4) > 0.5 ? Math.sin(time * cycleSpeed * 4) : 0;
+    }
+
+    function drawSnake() {
+      ctx.clearRect(0, 0, size, size);
+
+      for (let i = snake.segments.length - 1; i >= 1; i--) {
+        const seg = snake.segments[i];
+        const prev = snake.segments[i - 1];
+        const thickness = 6 + (1 - i / snake.segments.length) * 22;
+
+        ctx.beginPath();
+        ctx.lineWidth = thickness;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#4CAF50';
+        ctx.moveTo(seg.x, seg.y);
+        ctx.lineTo(prev.x, prev.y);
+        ctx.stroke();
+      }
+
+      const head = snake.segments[0];
+      const neck = snake.segments[1];
+      const angle = Math.atan2(head.y - neck.y, head.x - neck.x);
+
+      ctx.beginPath();
+      ctx.arc(head.x, head.y, snake.headSize, 0, Math.PI * 2);
+      ctx.fillStyle = '#4CAF50';
+      ctx.fill();
+
+      if (snake.tongueOut > 0) {
+        const tongueLength = 20 * snake.tongueOut;
+        const tongueX = head.x + Math.cos(angle) * (snake.headSize + tongueLength);
+        const tongueY = head.y + Math.sin(angle) * (snake.headSize + tongueLength);
+        const tongueStartX = head.x + Math.cos(angle) * snake.headSize;
+        const tongueStartY = head.y + Math.sin(angle) * snake.headSize;
+
+        ctx.beginPath();
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = '#F44336';
+        ctx.lineCap = 'round';
+        ctx.moveTo(tongueStartX, tongueStartY);
+        ctx.lineTo(tongueX, tongueY);
+        ctx.stroke();
+
+        const forkLen = 8;
+        ctx.beginPath();
+        ctx.moveTo(tongueX, tongueY);
+        ctx.lineTo(tongueX + Math.cos(angle + 0.5) * forkLen, tongueY + Math.sin(angle + 0.5) * forkLen);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tongueX, tongueY);
+        ctx.lineTo(tongueX + Math.cos(angle - 0.5) * forkLen, tongueY + Math.sin(angle - 0.5) * forkLen);
+        ctx.stroke();
+      }
+
+      const leftEyeX = head.x + Math.cos(angle + 0.7) * 12;
+      const leftEyeY = head.y + Math.sin(angle + 0.7) * 12;
+      const rightEyeX = head.x + Math.cos(angle - 0.5) * 14;
+      const rightEyeY = head.y + Math.sin(angle - 0.5) * 14;
+
+      const eyeHeight = snake.isBlinking ? 0.15 : 1;
+
+      ctx.beginPath();
+      ctx.save();
+      ctx.translate(leftEyeX, leftEyeY);
+      ctx.scale(1, eyeHeight);
+      ctx.arc(0, 0, 9, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.restore();
+
+      if (!snake.isBlinking) {
+        ctx.beginPath();
+        ctx.arc(leftEyeX + 1.5, leftEyeY + 3, 4.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'black';
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.save();
+      ctx.translate(rightEyeX, rightEyeY);
+      ctx.scale(1, eyeHeight);
+      ctx.arc(0, 0, 7.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'white';
+      ctx.fill();
+      ctx.restore();
+
+      if (!snake.isBlinking) {
+        ctx.beginPath();
+        ctx.arc(rightEyeX - 1.5, rightEyeY + 1.5, 3.75, 0, Math.PI * 2);
+        ctx.fillStyle = 'black';
+        ctx.fill();
+      }
+    }
+
+    function animate() {
+      updateSnake();
+      drawSnake();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

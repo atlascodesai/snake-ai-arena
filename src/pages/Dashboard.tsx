@@ -14,6 +14,7 @@ import { GameState, Submission } from '../game/types';
 import { GameController, compileAlgorithm } from '../game/AlgorithmRunner';
 import { demoAlgorithm } from '../game/algorithms';
 import { HeadlessGame } from '../game/HeadlessGame';
+import { AnimatedSnake } from '../components/AnimatedSnake';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -278,7 +279,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            <span className="text-2xl md:text-3xl">🐍</span>
+            <AnimatedSnake size={40} />
             <div>
               <h1 className="text-base md:text-xl font-bold text-white">Snake AI Arena</h1>
               <p className="text-xs md:text-sm text-gray-400 hidden sm:block">Build. Benchmark. Compete.</p>

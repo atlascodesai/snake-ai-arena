@@ -3,6 +3,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { AnimatedSnake } from '../components/AnimatedSnake';
 
 export default function NotFound() {
   const navigate = useNavigate();
@@ -11,7 +12,9 @@ export default function NotFound() {
     <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4">
       <div className="text-center max-w-md">
         <div className="text-8xl font-bold text-neon-green mb-4">404</div>
-        <div className="text-6xl mb-4">🐍</div>
+        <div className="mb-4 flex justify-center">
+          <AnimatedSnake size={80} />
+        </div>
         <h1 className="text-2xl font-bold text-white mb-2">
           Page Not Found
         </h1>
