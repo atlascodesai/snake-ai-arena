@@ -11,7 +11,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-dark-900 overflow-auto">
+      <div className="h-screen bg-dark-900 overflow-auto">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/editor" element={<Editor />} />
