@@ -85,7 +85,7 @@ app.use(helmet({
         "https://app.chatwoot.com",
         "wss://app.chatwoot.com",
       ],
-      frameSrc: ["'self'", "https://app.chatwoot.com"],
+      frameSrc: ["'self'", "https://app.chatwoot.com", "https://www.youtube.com"],
       workerSrc: ["'self'", "blob:"], // For Web Workers
     },
   },
