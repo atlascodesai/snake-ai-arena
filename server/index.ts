@@ -22,13 +22,23 @@ const isProduction = process.env.NODE_ENV === 'production';
 // Trust proxy (required for rate limiting behind Railway's load balancer)
 app.set('trust proxy', 1);
 
-// Rate limiting: 100 submissions per IP per hour
+// Rate limiting: 100 submissions per IP per hour (strict for writes)
 const submissionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 100,
   message: { error: 'Too many submissions, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// General rate limiter for all API requests (prevents scraping/DoS)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 300, // 300 requests per 15 min = 20/min average
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.method === 'OPTIONS', // Allow CORS preflight
 });
 
 // CORS configuration - restrict to allowed origins
@@ -60,14 +70,18 @@ app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
 // Security headers with helmet
+// NOTE: unsafe-inline and unsafe-eval are required and cannot be removed:
+// - unsafe-eval: Monaco Editor uses eval() internally, user algorithms use new Function()
+// - unsafe-inline: Tailwind CSS generates inline styles, Chatwoot uses inline scripts
+// These are acceptable tradeoffs for this application's functionality.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        "'unsafe-inline'", // Required for Vite dev and inline scripts
-        "'unsafe-eval'",   // Required for Monaco Editor and user algorithm execution
+        "'unsafe-inline'", // Required for Tailwind, Chatwoot, Vite dev
+        "'unsafe-eval'",   // Required for Monaco Editor and user algorithm execution (new Function)
         "https://app.chatwoot.com",
         "https://fonts.googleapis.com",
         "https://cdn.jsdelivr.net", // Required for Monaco Editor CDN
@@ -93,7 +107,10 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // Required for YouTube embeds
 }));
 
-// API Routes - apply rate limiter to POST submissions
+// Apply general rate limiter to all API routes
+app.use('/api', generalLimiter);
+
+// API Routes - apply stricter rate limiter to POST submissions
 app.use('/api/leaderboard', (req, res, next) => {
   if (req.method === 'POST') {
     return submissionLimiter(req, res, next);
