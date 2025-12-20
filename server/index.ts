@@ -7,6 +7,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { db } from './db.js';
@@ -141,7 +142,7 @@ function checkAidemoAuth(req: any, res: any, next: any) {
   }
   // Not authenticated - serve login page or check password
   if (req.method === 'POST' && req.body?.password === aidemoPassword && aidemoPassword) {
-    const newSession = Math.random().toString(36).substring(2);
+    const newSession = crypto.randomBytes(32).toString('hex');
     aidemoSessions.add(newSession);
     res.cookie('aidemo_session', newSession, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
     return res.json({ success: true });
@@ -152,7 +153,7 @@ function checkAidemoAuth(req: any, res: any, next: any) {
 // API endpoint for aidemo password check
 app.post('/api/aidemo/auth', (req, res) => {
   if (req.body?.password === aidemoPassword && aidemoPassword) {
-    const newSession = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const newSession = crypto.randomBytes(32).toString('hex');
     aidemoSessions.add(newSession);
     res.cookie('aidemo_session', newSession, { httpOnly: true, maxAge: 24 * 60 * 60 * 1000 });
     return res.json({ success: true });
