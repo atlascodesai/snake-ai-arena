@@ -12,9 +12,13 @@ test.describe('About Page', () => {
   });
 
   test('should have navigation back to home', async ({ page }) => {
-    // There should be a way to navigate back
-    const homeLink = page.locator('a[href="/"]').or(page.locator('text=/home|back/i'));
-    await expect(homeLink.first()).toBeVisible();
+    // Navigation is in hamburger menu - click to open it
+    const menuButton = page.locator('button[aria-label="Menu"]');
+    await menuButton.click();
+
+    // Now check for home navigation option
+    const homeOption = page.locator('text=/Arena Home|home/i');
+    await expect(homeOption.first()).toBeVisible();
   });
 
   test('should display technology stack or credits', async ({ page }) => {
