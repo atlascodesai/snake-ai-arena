@@ -90,6 +90,7 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false, // Required for Three.js
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // Required for YouTube embeds
 }));
 
 // API Routes - apply rate limiter to POST submissions
