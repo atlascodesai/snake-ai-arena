@@ -8,7 +8,7 @@ import {
   templateCode,
 } from './algorithms';
 import type { GameContext, Direction } from './types';
-import { posEqual, wrapPosition, posKey } from './utils';
+import { posEqual, wrapPosition } from './utils';
 
 // Helper to create a game context
 function createContext(overrides: Partial<GameContext> = {}): GameContext {
@@ -34,13 +34,17 @@ function isValidDirection(dir: Direction | null): boolean {
 }
 
 // Helper to check if move doesn't hit body
-function moveIsSafe(head: { x: number; y: number; z: number }, dir: Direction, snake: { x: number; y: number; z: number }[]): boolean {
+function moveIsSafe(
+  head: { x: number; y: number; z: number },
+  dir: Direction,
+  snake: { x: number; y: number; z: number }[]
+): boolean {
   const newHead = wrapPosition({
     x: head.x + dir.x,
     y: head.y + dir.y,
     z: head.z + dir.z,
   });
-  return !snake.slice(1).some(seg => posEqual(seg, newHead));
+  return !snake.slice(1).some((seg) => posEqual(seg, newHead));
 }
 
 describe('demoAlgorithm', () => {
@@ -65,11 +69,6 @@ describe('demoAlgorithm', () => {
     const dir1 = demoAlgorithm(ctx1);
     const dir2 = demoAlgorithm(ctx2);
     const dir3 = demoAlgorithm(ctx3);
-
-    // At least one should be different (spiral pattern changes)
-    const allSame =
-      posEqual(dir1 as Direction, dir2 as Direction) &&
-      posEqual(dir2 as Direction, dir3 as Direction);
 
     // They might be same if fallback is triggered, so just verify they're valid
     expect(isValidDirection(dir1)).toBe(true);
@@ -104,7 +103,10 @@ describe('greedyAlgorithm', () => {
 
   it('should move toward food', () => {
     const ctx = createContext({
-      snake: [{ x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }],
+      snake: [
+        { x: 0, y: 0, z: 0 },
+        { x: -1, y: 0, z: 0 },
+      ],
       food: { x: 5, y: 0, z: 0 },
     });
     const dir = greedyAlgorithm(ctx);
@@ -147,7 +149,10 @@ describe('greedyAlgorithm', () => {
 
   it('should choose closest direction when food is diagonal', () => {
     const ctx = createContext({
-      snake: [{ x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }],
+      snake: [
+        { x: 0, y: 0, z: 0 },
+        { x: -1, y: 0, z: 0 },
+      ],
       food: { x: 3, y: 2, z: 0 },
     });
     const dir = greedyAlgorithm(ctx);
@@ -167,7 +172,11 @@ describe('smartAlgorithm', () => {
 
   it('should move toward food when safe', () => {
     const ctx = createContext({
-      snake: [{ x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: -2, y: 0, z: 0 }],
+      snake: [
+        { x: 0, y: 0, z: 0 },
+        { x: -1, y: 0, z: 0 },
+        { x: -2, y: 0, z: 0 },
+      ],
       food: { x: 2, y: 0, z: 0 },
     });
     const dir = smartAlgorithm(ctx);
@@ -200,7 +209,7 @@ describe('smartAlgorithm', () => {
     // Since smartAlgorithm uses slice(1), it excludes head from collision
     const ctx = createContext({
       snake: [
-        { x: 0, y: 0, z: 0 },  // head
+        { x: 0, y: 0, z: 0 }, // head
         { x: 1, y: 0, z: 0 },
         { x: -1, y: 0, z: 0 },
         { x: 0, y: 1, z: 0 },
@@ -258,7 +267,10 @@ describe('Algorithm stress tests', () => {
 
   it('should handle food at same position as head', () => {
     const ctx = createContext({
-      snake: [{ x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }],
+      snake: [
+        { x: 0, y: 0, z: 0 },
+        { x: -1, y: 0, z: 0 },
+      ],
       food: { x: 0, y: 0, z: 0 },
     });
 

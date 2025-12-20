@@ -10,8 +10,8 @@ import Leaderboard from '../components/Leaderboard';
 import AudioToggle from '../components/AudioToggle';
 import { useAudio } from '../contexts/AudioContext';
 import { api, LeaderboardEntry } from '../api/client';
-import { GameState, Submission } from '../game/types';
-import { GameController, compileAlgorithm } from '../game/AlgorithmRunner';
+import { GameState } from '../game/types';
+import { compileAlgorithm } from '../game/AlgorithmRunner';
 import { demoAlgorithm } from '../game/algorithms';
 import { HeadlessGame } from '../game/HeadlessGame';
 import { AnimatedSnake } from '../components/AnimatedSnake';
@@ -25,7 +25,11 @@ export default function Dashboard() {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [gameState, setGameState] = useState<GameState>({
-    snake: [{ x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: -2, y: 0, z: 0 }],
+    snake: [
+      { x: 0, y: 0, z: 0 },
+      { x: -1, y: 0, z: 0 },
+      { x: -2, y: 0, z: 0 },
+    ],
     food: { x: 5, y: 0, z: 0 },
     score: 0,
     frame: 0,
@@ -41,7 +45,6 @@ export default function Dashboard() {
 
   const gameRef = useRef<HeadlessGame | null>(null);
   const intervalRef = useRef<number | null>(null);
-
 
   // Stop audio when component unmounts (navigation away)
   useEffect(() => {
@@ -76,6 +79,7 @@ export default function Dashboard() {
     }
 
     fetchLeaderboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch selected algorithm's code
@@ -150,14 +154,14 @@ export default function Dashboard() {
         playWhammy();
 
         // Record score
-        setTotalScore(prev => prev + state.score);
-        setRunCount(prev => {
+        setTotalScore((prev) => prev + state.score);
+        setRunCount((prev) => {
           const newCount = prev + 1;
 
           // After 10 runs, calculate delta and reset
           if (newCount >= 10) {
             const avgScore = (totalScore + state.score) / 10;
-            const selected = submissions.find(s => s.id === selectedId);
+            const selected = submissions.find((s) => s.id === selectedId);
             if (selected) {
               setScoreDelta(Math.round(avgScore - selected.avgScore));
             }
@@ -182,6 +186,8 @@ export default function Dashboard() {
       }
       stopLoop();
     };
+    // Intentionally excluding submissions and totalScore to avoid infinite game restart loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCode, selectedId, startLoop, stopLoop, playWhammy, playWin]);
 
   const handleSelect = useCallback((id: number) => {
@@ -189,19 +195,22 @@ export default function Dashboard() {
     setScoreDelta(null);
   }, []);
 
-  const handleFork = useCallback((id: number) => {
-    navigate(`/editor/${id}`);
-  }, [navigate]);
+  const handleFork = useCallback(
+    (id: number) => {
+      navigate(`/editor/${id}`);
+    },
+    [navigate]
+  );
 
   const handleNewAlgorithm = useCallback(() => {
     navigate('/editor');
   }, [navigate]);
 
-  const selectedSubmission = submissions.find(s => s.id === selectedId);
+  const selectedSubmission = submissions.find((s) => s.id === selectedId);
 
   // Handle FPV toggle - instant switch
   const handleToggleFPV = useCallback(() => {
-    setIsFirstPerson(prev => !prev);
+    setIsFirstPerson((prev) => !prev);
   }, []);
 
   return (
@@ -220,21 +229,33 @@ export default function Dashboard() {
                 aria-haspopup="true"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
 
               {/* Dropdown Menu */}
               {menuOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setMenuOpen(false)}
+                    aria-hidden="true"
+                  />
                   <nav
                     className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1"
                     role="menu"
                     aria-label="Main navigation"
                   >
                     <button
-                      onClick={() => { navigate('/'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                       role="menuitem"
                     >
@@ -242,7 +263,10 @@ export default function Dashboard() {
                       <span>Arena Home</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/editor'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/editor');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                       role="menuitem"
                     >
@@ -250,7 +274,10 @@ export default function Dashboard() {
                       <span>Editor</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/play'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/play');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                       role="menuitem"
                     >
@@ -258,7 +285,10 @@ export default function Dashboard() {
                       <span>Manual Play</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/leaderboard'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/leaderboard');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                       role="menuitem"
                     >
@@ -267,7 +297,10 @@ export default function Dashboard() {
                     </button>
                     <hr className="my-1 border-dark-700" aria-hidden="true" />
                     <button
-                      onClick={() => { navigate('/about'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/about');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-gray-400 hover:bg-dark-700 hover:text-white flex items-center gap-2"
                       role="menuitem"
                     >
@@ -282,7 +315,9 @@ export default function Dashboard() {
             <AnimatedSnake size={40} />
             <div>
               <h1 className="text-base md:text-xl font-bold text-white">Snake AI Arena</h1>
-              <p className="text-xs md:text-sm text-gray-400 hidden sm:block">Build. Benchmark. Compete.</p>
+              <p className="text-xs md:text-sm text-gray-400 hidden sm:block">
+                Build. Benchmark. Compete.
+              </p>
             </div>
           </div>
 
@@ -305,7 +340,7 @@ export default function Dashboard() {
         {/* Leaderboard - sidebar on desktop, below on mobile */}
         <aside className="flex-shrink-0 md:w-[400px] lg:w-[450px] border-b md:border-b-0 md:border-r border-dark-700 p-2 md:p-4 overflow-y-auto order-2 md:order-1 min-h-0 max-h-[40vh] md:max-h-none">
           <Leaderboard
-            submissions={submissions.map(s => ({
+            submissions={submissions.map((s) => ({
               id: s.id,
               name: s.name,
               code: '',
@@ -324,99 +359,124 @@ export default function Dashboard() {
         </aside>
 
         {/* Game viewer - main area */}
-        <div className={`flex flex-col p-2 md:p-4 min-h-0 min-w-0 order-1 md:order-2 transition-all duration-300 ${
-          isExpanded ? 'fixed inset-0 z-50 bg-dark-900 p-4' : 'flex-1'
-        }`}>
-            {/* Playing indicator */}
-            <div className="flex-shrink-0 mb-2 md:mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
-                <span className="text-gray-300 text-sm md:text-base">
-                  <span className="hidden sm:inline">Now playing: </span>
-                  <span className="text-white font-semibold">{selectedSubmission?.name || 'Demo'}</span>
+        <div
+          className={`flex flex-col p-2 md:p-4 min-h-0 min-w-0 order-1 md:order-2 transition-all duration-300 ${
+            isExpanded ? 'fixed inset-0 z-50 bg-dark-900 p-4' : 'flex-1'
+          }`}
+        >
+          {/* Playing indicator */}
+          <div className="flex-shrink-0 mb-2 md:mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <div className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
+              <span className="text-gray-300 text-sm md:text-base">
+                <span className="hidden sm:inline">Now playing: </span>
+                <span className="text-white font-semibold">
+                  {selectedSubmission?.name || 'Demo'}
                 </span>
-              </div>
+              </span>
+            </div>
 
-              <div className="flex items-center gap-2 md:gap-4">
-                {/* Run counter */}
-                <div className="text-xs md:text-sm text-gray-400">
-                  {runCount + 1}/10
-                </div>
+            <div className="flex items-center gap-2 md:gap-4">
+              {/* Run counter */}
+              <div className="text-xs md:text-sm text-gray-400">{runCount + 1}/10</div>
 
-                {/* Score delta */}
-                {scoreDelta !== null && (
-                  <div className={`text-xs md:text-sm font-medium ${scoreDelta >= 0 ? 'text-neon-green' : 'text-red-400'}`}>
-                    {scoreDelta >= 0 ? '+' : ''}{scoreDelta}
-                  </div>
-                )}
-
-                {/* Expand/Collapse button */}
-                <button
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-700 rounded transition-colors"
-                  title={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}
+              {/* Score delta */}
+              {scoreDelta !== null && (
+                <div
+                  className={`text-xs md:text-sm font-medium ${scoreDelta >= 0 ? 'text-neon-green' : 'text-red-400'}`}
                 >
-                  {isExpanded ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                    </svg>
-                  )}
-                </button>
-              </div>
+                  {scoreDelta >= 0 ? '+' : ''}
+                  {scoreDelta}
+                </div>
+              )}
+
+              {/* Expand/Collapse button */}
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="p-1.5 text-gray-400 hover:text-white hover:bg-dark-700 rounded transition-colors"
+                title={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                {isExpanded ? (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
-
-            {/* Game canvas */}
-            <div className="flex-1 bg-dark-800 rounded-xl border border-dark-700 overflow-hidden min-h-0 relative">
-              <GameViewerFPV
-                gameState={gameState}
-                className="w-full h-full"
-                isFirstPerson={isFirstPerson}
-                onToggleFPV={handleToggleFPV}
-                showFPVToggle={true}
-              />
-
-            </div>
-
-            {/* Score/Length when expanded */}
-            {isExpanded && (
-              <div className="flex-shrink-0 mt-2 flex items-center justify-center gap-6 text-lg">
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">Score</span>
-                  <span className="font-bold text-neon-green">{gameState.score}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-400">Length</span>
-                  <span className="font-bold text-white">{gameState.snake.length}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Stats bar - 2 cols on mobile, 4 on desktop (hidden when expanded) */}
-            {selectedSubmission && !isExpanded && (
-              <div className="flex-shrink-0 mt-2 md:mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
-                <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
-                  <div className="text-[10px] md:text-xs text-gray-400">Avg Score</div>
-                  <div className="text-base md:text-xl font-bold text-neon-green">{selectedSubmission.avgScore.toLocaleString()}</div>
-                </div>
-                <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
-                  <div className="text-[10px] md:text-xs text-gray-400">Max Score</div>
-                  <div className="text-base md:text-xl font-bold text-neon-blue">{selectedSubmission.maxScore.toLocaleString()}</div>
-                </div>
-                <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
-                  <div className="text-[10px] md:text-xs text-gray-400">Submitted</div>
-                  <div className="text-base md:text-xl font-bold text-neon-pink">{new Date(selectedSubmission.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                </div>
-                <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
-                  <div className="text-[10px] md:text-xs text-gray-400">Lines</div>
-                  <div className="text-base md:text-xl font-bold text-white">{selectedSubmission.linesOfCode}</div>
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Game canvas */}
+          <div className="flex-1 bg-dark-800 rounded-xl border border-dark-700 overflow-hidden min-h-0 relative">
+            <GameViewerFPV
+              gameState={gameState}
+              className="w-full h-full"
+              isFirstPerson={isFirstPerson}
+              onToggleFPV={handleToggleFPV}
+              showFPVToggle={true}
+            />
+          </div>
+
+          {/* Score/Length when expanded */}
+          {isExpanded && (
+            <div className="flex-shrink-0 mt-2 flex items-center justify-center gap-6 text-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Score</span>
+                <span className="font-bold text-neon-green">{gameState.score}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400">Length</span>
+                <span className="font-bold text-white">{gameState.snake.length}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Stats bar - 2 cols on mobile, 4 on desktop (hidden when expanded) */}
+          {selectedSubmission && !isExpanded && (
+            <div className="flex-shrink-0 mt-2 md:mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+              <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
+                <div className="text-[10px] md:text-xs text-gray-400">Avg Score</div>
+                <div className="text-base md:text-xl font-bold text-neon-green">
+                  {selectedSubmission.avgScore.toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
+                <div className="text-[10px] md:text-xs text-gray-400">Max Score</div>
+                <div className="text-base md:text-xl font-bold text-neon-blue">
+                  {selectedSubmission.maxScore.toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
+                <div className="text-[10px] md:text-xs text-gray-400">Submitted</div>
+                <div className="text-base md:text-xl font-bold text-neon-pink">
+                  {new Date(selectedSubmission.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </div>
+              </div>
+              <div className="bg-dark-800 rounded-lg p-2 md:p-3 border border-dark-700">
+                <div className="text-[10px] md:text-xs text-gray-400">Lines</div>
+                <div className="text-base md:text-xl font-bold text-white">
+                  {selectedSubmission.linesOfCode}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );

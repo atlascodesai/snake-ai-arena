@@ -3,7 +3,7 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { db, SubmissionRow } from '../db.js';
+import { db } from '../db.js';
 
 const router = Router();
 
@@ -83,7 +83,7 @@ router.get('/preview/:avgScore', async (req: Request, res: Response) => {
     // Find submissions just above and below
     // Submissions are sorted by avg_score DESC, so higher scores come first
     const above = submissions
-      .filter(s => s.avg_score > avgScore)
+      .filter((s) => s.avg_score > avgScore)
       .slice(-2) // Get the 2 closest scores above (at the end of filtered list)
       .reverse() // Reverse so highest is first
       .map((s, i, arr) => ({
@@ -93,7 +93,7 @@ router.get('/preview/:avgScore', async (req: Request, res: Response) => {
       }));
 
     const below = submissions
-      .filter(s => s.avg_score <= avgScore)
+      .filter((s) => s.avg_score <= avgScore)
       .slice(0, 2)
       .map((s, i) => ({
         name: s.name,
@@ -132,31 +132,51 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Code must be 100KB or less' });
     }
 
-    if (typeof avgScore !== 'number' || !Number.isFinite(avgScore) || avgScore < 0 || avgScore > 1000000) {
+    if (
+      typeof avgScore !== 'number' ||
+      !Number.isFinite(avgScore) ||
+      avgScore < 0 ||
+      avgScore > 1000000
+    ) {
       return res.status(400).json({ error: 'Invalid score' });
     }
 
     // Validate optional numeric fields
-    if (maxScore !== undefined && (typeof maxScore !== 'number' || !Number.isFinite(maxScore) || maxScore < 0 || maxScore > 1000000)) {
+    if (
+      maxScore !== undefined &&
+      (typeof maxScore !== 'number' ||
+        !Number.isFinite(maxScore) ||
+        maxScore < 0 ||
+        maxScore > 1000000)
+    ) {
       return res.status(400).json({ error: 'Invalid max score' });
     }
 
-    if (survivalRate !== undefined && (typeof survivalRate !== 'number' || !Number.isFinite(survivalRate) || survivalRate < 0 || survivalRate > 100)) {
+    if (
+      survivalRate !== undefined &&
+      (typeof survivalRate !== 'number' ||
+        !Number.isFinite(survivalRate) ||
+        survivalRate < 0 ||
+        survivalRate > 100)
+    ) {
       return res.status(400).json({ error: 'Invalid survival rate' });
     }
 
-    if (gamesPlayed !== undefined && (typeof gamesPlayed !== 'number' || !Number.isFinite(gamesPlayed) || gamesPlayed < 1 || gamesPlayed > 1000)) {
+    if (
+      gamesPlayed !== undefined &&
+      (typeof gamesPlayed !== 'number' ||
+        !Number.isFinite(gamesPlayed) ||
+        gamesPlayed < 1 ||
+        gamesPlayed > 1000)
+    ) {
       return res.status(400).json({ error: 'Invalid games played' });
     }
 
     // Count lines of code (non-empty, non-comment lines)
-    const linesOfCode = code
-      .split('\n')
-      .filter((line: string) => {
-        const trimmed = line.trim();
-        return trimmed.length > 0 && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
-      })
-      .length;
+    const linesOfCode = code.split('\n').filter((line: string) => {
+      const trimmed = line.trim();
+      return trimmed.length > 0 && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
+    }).length;
 
     // Insert submission
     const result = await db.insertSubmission(

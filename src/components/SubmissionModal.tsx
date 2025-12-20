@@ -26,13 +26,13 @@ function getRankMessage(rank: number, total: number): { emoji: string; message: 
   } else if (rank <= 3) {
     return { emoji: '🥇', message: 'Top 3! Amazing work!' };
   } else if (percentile >= 90) {
-    return { emoji: '🔥', message: 'Top 10%! You\'re on fire!' };
+    return { emoji: '🔥', message: "Top 10%! You're on fire!" };
   } else if (percentile >= 75) {
     return { emoji: '⭐', message: 'Top 25%! Great algorithm!' };
   } else if (percentile >= 50) {
     return { emoji: '💪', message: 'Top 50%! Keep improving!' };
   } else {
-    return { emoji: '🚀', message: 'You\'re on the board! Keep coding!' };
+    return { emoji: '🚀', message: "You're on the board! Keep coding!" };
   }
 }
 
@@ -94,10 +94,7 @@ export default function SubmissionModal({ isOpen, onClose, result }: SubmissionM
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-dark-900/90 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-dark-900/90 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-dark-800 border border-dark-600 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in fade-in zoom-in duration-300">
@@ -115,18 +112,14 @@ export default function SubmissionModal({ isOpen, onClose, result }: SubmissionM
           <div className="text-6xl mb-4">{emoji}</div>
 
           {/* Congratulations */}
-          <h2 className="text-2xl font-bold text-white mb-2">
-            Congratulations!
-          </h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Congratulations!</h2>
 
           <p className="text-gray-400 mb-6">{message}</p>
 
           {/* Rank display */}
           <div className="bg-dark-700 rounded-xl p-6 mb-6">
             <div className="text-sm text-gray-400 mb-1">Your Rank</div>
-            <div className="text-5xl font-bold text-neon-green mb-2">
-              #{result.rank}
-            </div>
+            <div className="text-5xl font-bold text-neon-green mb-2">#{result.rank}</div>
             <div className="text-sm text-gray-500">
               out of {result.totalSubmissions} submissions
             </div>

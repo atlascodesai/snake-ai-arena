@@ -3,12 +3,12 @@
  * Enhanced version of GameViewer with FPV camera mode
  */
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Position, Direction, GameState } from '../game/types';
-import { GRID_SIZE, wrapPosition, posEqual } from '../game/utils';
+import { GRID_SIZE } from '../game/utils';
 
 interface GameViewerFPVProps {
   gameState: GameState;
@@ -22,7 +22,7 @@ interface GameViewerFPVProps {
 function SnakeSegment({
   position,
   isHead,
-  hidden
+  hidden,
 }: {
   position: Position;
   isHead: boolean;
@@ -127,13 +127,7 @@ function CameraController() {
 }
 
 // First-person camera that follows the snake head
-function FirstPersonCamera({
-  snake,
-  fov = 90,
-}: {
-  snake: Position[];
-  fov?: number;
-}) {
+function FirstPersonCamera({ snake, fov = 90 }: { snake: Position[]; fov?: number }) {
   const { camera } = useThree();
   const smoothPosition = useRef(new THREE.Vector3());
   const smoothTarget = useRef(new THREE.Vector3());
@@ -148,7 +142,7 @@ function FirstPersonCamera({
     const neck = snake[1];
 
     // Calculate direction from neck to head
-    let dir: Direction = {
+    const dir: Direction = {
       x: head.x - neck.x,
       y: head.y - neck.y,
       z: head.z - neck.z,
@@ -163,9 +157,17 @@ function FirstPersonCamera({
     const oldDir = lastDirection.current;
     if (dir.x !== oldDir.x || dir.y !== oldDir.y || dir.z !== oldDir.z) {
       // Check if we pitched (direction changed to/from up direction)
-      if (dir.x === snakeUp.current.x && dir.y === snakeUp.current.y && dir.z === snakeUp.current.z) {
+      if (
+        dir.x === snakeUp.current.x &&
+        dir.y === snakeUp.current.y &&
+        dir.z === snakeUp.current.z
+      ) {
         snakeUp.current = { x: -oldDir.x, y: -oldDir.y, z: -oldDir.z };
-      } else if (dir.x === -snakeUp.current.x && dir.y === -snakeUp.current.y && dir.z === -snakeUp.current.z) {
+      } else if (
+        dir.x === -snakeUp.current.x &&
+        dir.y === -snakeUp.current.y &&
+        dir.z === -snakeUp.current.z
+      ) {
         snakeUp.current = { ...oldDir };
       }
       lastDirection.current = { ...dir };
@@ -248,11 +250,7 @@ export default function GameViewerFPV({
         gl={{ antialias: true, alpha: true }}
         style={{ background: 'transparent' }}
       >
-        <Scene
-          gameState={gameState}
-          isFirstPerson={isFirstPerson}
-          fpvFov={fpvFov}
-        />
+        <Scene gameState={gameState} isFirstPerson={isFirstPerson} fpvFov={fpvFov} />
       </Canvas>
 
       {/* Score overlay */}
@@ -298,8 +296,18 @@ export default function GameViewerFPV({
               title={isFirstPerson ? 'Switch to orbit view' : 'Switch to first-person view'}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                />
               </svg>
             </button>
           )}

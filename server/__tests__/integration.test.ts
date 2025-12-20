@@ -8,7 +8,7 @@
  *   docker compose -f docker-compose.test.yml up -d
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 
 const API_URL = process.env.TEST_API_URL || 'http://localhost:3001';
 
@@ -34,7 +34,7 @@ async function waitForApi(maxAttempts = 30, delay = 1000): Promise<boolean> {
     } catch {
       // API not ready yet
     }
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
   return false;
 }
@@ -137,7 +137,7 @@ function algorithm(context) {
   describe('Full Manual Score Submission Flow', () => {
     const testScore = {
       name: `ManualTest_${Date.now()}`,
-      score: 420,  // (45 - 3) * 10 = 420
+      score: 420, // (45 - 3) * 10 = 420
       length: 45,
       controlType: 'wasd-zx',
     };
@@ -219,7 +219,7 @@ function algorithm(context) {
         body: JSON.stringify({
           name: 'Cheater',
           score: 1000,
-          length: 5,  // Doesn't match: (5-3)*10 = 20, not 1000
+          length: 5, // Doesn't match: (5-3)*10 = 20, not 1000
           controlType: 'wasd-zx',
         }),
       });
@@ -248,7 +248,7 @@ function algorithm(context) {
       }));
 
       const results = await Promise.all(
-        submissions.map(sub =>
+        submissions.map((sub) =>
           api('/api/leaderboard', {
             method: 'POST',
             body: JSON.stringify(sub),
@@ -264,7 +264,7 @@ function algorithm(context) {
       });
 
       // All IDs should be unique
-      const ids = results.map(r => r.data.id);
+      const ids = results.map((r) => r.data.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
   });

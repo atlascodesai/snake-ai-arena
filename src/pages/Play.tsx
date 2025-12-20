@@ -14,7 +14,6 @@ import {
   transformDirectionForCamera,
   getFirstPersonDirection,
   getNewUpVector,
-  wouldCollide,
   getFirstPersonHUD,
   DEFAULT_CONTROL_SCHEME,
 } from '../game/controls';
@@ -23,7 +22,15 @@ import { useAudio } from '../contexts/AudioContext';
 import { api, ManualScoreResult, ViewMode } from '../api/client';
 
 // Snake segment component
-function SnakeSegment({ position, isHead, hidden }: { position: Position; isHead: boolean; hidden?: boolean }) {
+function SnakeSegment({
+  position,
+  isHead,
+  hidden,
+}: {
+  position: Position;
+  isHead: boolean;
+  hidden?: boolean;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
 
   useFrame(({ clock }) => {
@@ -125,7 +132,7 @@ function Fireworks({ trigger, position }: { trigger: number; position: Position 
     }
 
     // Update particles
-    particlesRef.current = particlesRef.current.filter(p => {
+    particlesRef.current = particlesRef.current.filter((p) => {
       p.life -= delta / p.maxLife;
       p.velocity.y -= 15 * delta; // Gravity
       p.position.add(p.velocity.clone().multiplyScalar(delta));
@@ -183,11 +190,12 @@ function GridCage() {
 // Camera controller with optional auto-rotation (orbit mode)
 function CameraController({
   autoRotate,
-  onAngleChange
+  onAngleChange,
 }: {
   autoRotate: boolean;
   onAngleChange?: (angle: number) => void;
 }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
   useFrame(() => {
@@ -230,11 +238,7 @@ function FirstPersonCamera({
     const dir = lastDirection;
 
     // Position camera at the snake head
-    const headPos = new THREE.Vector3(
-      snakeHead.x * 2,
-      snakeHead.y * 2,
-      snakeHead.z * 2
-    );
+    const headPos = new THREE.Vector3(snakeHead.x * 2, snakeHead.y * 2, snakeHead.z * 2);
 
     // Look direction is the snake's movement direction
     const lookDir = new THREE.Vector3(dir.x, dir.y, dir.z).normalize();
@@ -301,7 +305,7 @@ function Scene({
           key={index}
           position={segment}
           isHead={index === 0}
-          hidden={isFirstPerson && index === 0}  // Hide head in first-person view
+          hidden={isFirstPerson && index === 0} // Hide head in first-person view
         />
       ))}
       <Food position={gameState.food} />
@@ -359,7 +363,7 @@ export default function Play() {
 
   // Spawn food at random position
   const spawnFood = useCallback((snake: Position[]): Position => {
-    const occupied = new Set(snake.map(p => `${p.x},${p.y},${p.z}`));
+    const occupied = new Set(snake.map((p) => `${p.x},${p.y},${p.z}`));
     const HALF = GRID_SIZE / 2;
     let pos: Position;
     let attempts = 0;
@@ -436,7 +440,14 @@ export default function Play() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [playerName, gameState.score, gameState.snake.length, isSubmitting, playWin, gameOverViewMode]);
+  }, [
+    playerName,
+    gameState.score,
+    gameState.snake.length,
+    isSubmitting,
+    playWin,
+    gameOverViewMode,
+  ]);
 
   // Set direction (queue it for next tick)
   const setDirection = useCallback((dir: Direction) => {
@@ -448,30 +459,40 @@ export default function Play() {
   }, []);
 
   // Set direction with view-relative transformation for XZ movements
-  const setDirectionWithViewTransform = useCallback((dir: Direction) => {
-    if (viewRelativeControls && dir.y === 0) {
-      setDirection(transformDirectionForCamera(dir, cameraAngleRef.current));
-    } else {
-      setDirection(dir);
-    }
-  }, [setDirection, viewRelativeControls]);
+  const setDirectionWithViewTransform = useCallback(
+    (dir: Direction) => {
+      if (viewRelativeControls && dir.y === 0) {
+        setDirection(transformDirectionForCamera(dir, cameraAngleRef.current));
+      } else {
+        setDirection(dir);
+      }
+    },
+    [setDirection, viewRelativeControls]
+  );
 
   // Set direction for first-person view (pitch/yaw relative to snake orientation)
-  const setFirstPersonDirection = useCallback((input: 'up' | 'down' | 'left' | 'right') => {
-    const newDir = getFirstPersonDirection(input, lastDirectionRef.current, snakeUpRef.current);
-    setDirection(newDir);
-  }, [setDirection]);
+  const setFirstPersonDirection = useCallback(
+    (input: 'up' | 'down' | 'left' | 'right') => {
+      const newDir = getFirstPersonDirection(input, lastDirectionRef.current, snakeUpRef.current);
+      setDirection(newDir);
+    },
+    [setDirection]
+  );
 
   // Game loop
   useEffect(() => {
     const tick = () => {
-      setGameState(prev => {
+      setGameState((prev) => {
         if (prev.gameOver) return prev;
 
         const dir = directionRef.current || lastDirectionRef.current;
         if (directionRef.current) {
           // Update the "up" vector based on direction change (for FPV camera orientation)
-          snakeUpRef.current = getNewUpVector(lastDirectionRef.current, directionRef.current, snakeUpRef.current);
+          snakeUpRef.current = getNewUpVector(
+            lastDirectionRef.current,
+            directionRef.current,
+            snakeUpRef.current
+          );
           lastDirectionRef.current = directionRef.current;
           directionRef.current = null;
         }
@@ -483,7 +504,7 @@ export default function Play() {
           z: head.z + dir.z,
         });
 
-        const hitBody = prev.snake.slice(1).some(seg => posEqual(seg, newHead));
+        const hitBody = prev.snake.slice(1).some((seg) => posEqual(seg, newHead));
         if (hitBody) {
           playWhammy();
           // Capture the view mode at game over time
@@ -495,7 +516,7 @@ export default function Play() {
         if (eating) {
           playWin();
           setFireworkPosition(prev.food);
-          setFireworkTrigger(t => t + 1);
+          setFireworkTrigger((t) => t + 1);
         }
 
         const newSnake = [newHead, ...prev.snake];
@@ -517,6 +538,8 @@ export default function Play() {
     return () => {
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     };
+    // isFirstPerson is intentionally excluded - we don't want view change to restart game
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spawnFood, playWin, playWhammy]);
 
   // Keyboard controls
@@ -590,7 +613,16 @@ export default function Play() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameState.gameOver, resetGame, setDirection, setFirstPersonDirection, showNameInput, submitResult, viewRelativeControls, isFirstPerson]);
+  }, [
+    gameState.gameOver,
+    resetGame,
+    setDirection,
+    setFirstPersonDirection,
+    showNameInput,
+    submitResult,
+    viewRelativeControls,
+    isFirstPerson,
+  ]);
 
   return (
     <div className="fixed inset-0 bg-dark-900 flex flex-col">
@@ -605,7 +637,12 @@ export default function Play() {
                 className="p-2 text-gray-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
 
@@ -614,35 +651,55 @@ export default function Play() {
                   <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                   <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1">
                     <button
-                      onClick={() => { navigate('/'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>🏠</span><span>Arena Home</span>
+                      <span>🏠</span>
+                      <span>Arena Home</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/editor'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/editor');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>✏️</span><span>Editor</span>
+                      <span>✏️</span>
+                      <span>Editor</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/play'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/play');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-neon-green hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>🎮</span><span>Manual Play</span>
+                      <span>🎮</span>
+                      <span>Manual Play</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/leaderboard'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/leaderboard');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>🏆</span><span>Leaderboard</span>
+                      <span>🏆</span>
+                      <span>Leaderboard</span>
                     </button>
                     <hr className="my-1 border-dark-700" />
                     <button
-                      onClick={() => { navigate('/about'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/about');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-gray-400 hover:bg-dark-700 hover:text-white flex items-center gap-2"
                     >
-                      <span>ℹ️</span><span>About</span>
+                      <span>ℹ️</span>
+                      <span>About</span>
                     </button>
                   </div>
                 </>
@@ -682,7 +739,9 @@ export default function Play() {
             <Scene
               gameState={gameState}
               autoRotate={autoRotate}
-              onCameraAngleChange={(angle) => { cameraAngleRef.current = angle; }}
+              onCameraAngleChange={(angle) => {
+                cameraAngleRef.current = angle;
+              }}
               isFirstPerson={isFirstPerson}
               lastDirection={lastDirectionRef.current}
               snakeUp={snakeUpRef.current}
@@ -700,85 +759,129 @@ export default function Play() {
             </div>
             <div className="bg-dark-800/90 backdrop-blur px-4 py-2 rounded-lg border border-dark-600">
               <span className="text-gray-400 text-sm">Length</span>
-              <span className="ml-2 text-neon-blue font-bold text-2xl">{gameState.snake.length}</span>
+              <span className="ml-2 text-neon-blue font-bold text-2xl">
+                {gameState.snake.length}
+              </span>
             </div>
           </div>
 
           {/* First-person HUD - direction indicators */}
-          {isFirstPerson && !gameState.gameOver && (() => {
-            const hud = getFirstPersonHUD(
-              gameState.snake,
-              gameState.food,
-              lastDirectionRef.current,
-              snakeUpRef.current
-            );
-            return (
-              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                {/* Direction indicator cross */}
-                <div className="relative w-32 h-32">
-                  {/* Up indicator */}
-                  <div className={`absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center ${
-                    hud.collisionWarnings.up ? 'text-red-500' : hud.foodDirection === 'up' ? 'text-neon-pink' : 'text-gray-600'
-                  }`}>
-                    {hud.collisionWarnings.up && <span className="text-xs mb-0.5">⚠️</span>}
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                    </svg>
-                    {hud.foodDirection === 'up' && <span className="text-xs">🍎</span>}
-                  </div>
+          {isFirstPerson &&
+            !gameState.gameOver &&
+            (() => {
+              const hud = getFirstPersonHUD(
+                gameState.snake,
+                gameState.food,
+                lastDirectionRef.current,
+                snakeUpRef.current
+              );
+              return (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  {/* Direction indicator cross */}
+                  <div className="relative w-32 h-32">
+                    {/* Up indicator */}
+                    <div
+                      className={`absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center ${
+                        hud.collisionWarnings.up
+                          ? 'text-red-500'
+                          : hud.foodDirection === 'up'
+                            ? 'text-neon-pink'
+                            : 'text-gray-600'
+                      }`}
+                    >
+                      {hud.collisionWarnings.up && <span className="text-xs mb-0.5">⚠️</span>}
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {hud.foodDirection === 'up' && <span className="text-xs">🍎</span>}
+                    </div>
 
-                  {/* Down indicator */}
-                  <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center ${
-                    hud.collisionWarnings.down ? 'text-red-500' : hud.foodDirection === 'down' ? 'text-neon-pink' : 'text-gray-600'
-                  }`}>
-                    {hud.foodDirection === 'down' && <span className="text-xs">🍎</span>}
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                    {hud.collisionWarnings.down && <span className="text-xs mt-0.5">⚠️</span>}
-                  </div>
+                    {/* Down indicator */}
+                    <div
+                      className={`absolute bottom-0 left-1/2 -translate-x-1/2 flex flex-col items-center ${
+                        hud.collisionWarnings.down
+                          ? 'text-red-500'
+                          : hud.foodDirection === 'down'
+                            ? 'text-neon-pink'
+                            : 'text-gray-600'
+                      }`}
+                    >
+                      {hud.foodDirection === 'down' && <span className="text-xs">🍎</span>}
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {hud.collisionWarnings.down && <span className="text-xs mt-0.5">⚠️</span>}
+                    </div>
 
-                  {/* Left indicator */}
-                  <div className={`absolute left-0 top-1/2 -translate-y-1/2 flex items-center ${
-                    hud.collisionWarnings.left ? 'text-red-500' : hud.foodDirection === 'left' ? 'text-neon-pink' : 'text-gray-600'
-                  }`}>
-                    {hud.collisionWarnings.left && <span className="text-xs mr-0.5">⚠️</span>}
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {hud.foodDirection === 'left' && <span className="text-xs">🍎</span>}
-                  </div>
+                    {/* Left indicator */}
+                    <div
+                      className={`absolute left-0 top-1/2 -translate-y-1/2 flex items-center ${
+                        hud.collisionWarnings.left
+                          ? 'text-red-500'
+                          : hud.foodDirection === 'left'
+                            ? 'text-neon-pink'
+                            : 'text-gray-600'
+                      }`}
+                    >
+                      {hud.collisionWarnings.left && <span className="text-xs mr-0.5">⚠️</span>}
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {hud.foodDirection === 'left' && <span className="text-xs">🍎</span>}
+                    </div>
 
-                  {/* Right indicator */}
-                  <div className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center ${
-                    hud.collisionWarnings.right ? 'text-red-500' : hud.foodDirection === 'right' ? 'text-neon-pink' : 'text-gray-600'
-                  }`}>
-                    {hud.foodDirection === 'right' && <span className="text-xs">🍎</span>}
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {hud.collisionWarnings.right && <span className="text-xs ml-0.5">⚠️</span>}
-                  </div>
+                    {/* Right indicator */}
+                    <div
+                      className={`absolute right-0 top-1/2 -translate-y-1/2 flex items-center ${
+                        hud.collisionWarnings.right
+                          ? 'text-red-500'
+                          : hud.foodDirection === 'right'
+                            ? 'text-neon-pink'
+                            : 'text-gray-600'
+                      }`}
+                    >
+                      {hud.foodDirection === 'right' && <span className="text-xs">🍎</span>}
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {hud.collisionWarnings.right && <span className="text-xs ml-0.5">⚠️</span>}
+                    </div>
 
-                  {/* Center - ahead/behind indicator */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                    {hud.foodDirection === 'ahead' && (
-                      <div className="text-neon-pink animate-pulse">
-                        <span className="text-lg">🍎</span>
-                        <div className="text-[10px]">AHEAD</div>
-                      </div>
-                    )}
-                    {hud.foodDirection === 'behind' && (
-                      <div className="text-gray-500">
-                        <span className="text-sm">🍎</span>
-                        <div className="text-[10px]">BEHIND</div>
-                      </div>
-                    )}
+                    {/* Center - ahead/behind indicator */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                      {hud.foodDirection === 'ahead' && (
+                        <div className="text-neon-pink animate-pulse">
+                          <span className="text-lg">🍎</span>
+                          <div className="text-[10px]">AHEAD</div>
+                        </div>
+                      )}
+                      {hud.foodDirection === 'behind' && (
+                        <div className="text-gray-500">
+                          <span className="text-sm">🍎</span>
+                          <div className="text-[10px]">BEHIND</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* Control toggles - bottom right */}
           <div className="absolute bottom-4 right-4 flex items-center gap-2">
@@ -815,8 +918,18 @@ export default function Play() {
                 title={isFirstPerson ? 'Switch to orbit view' : 'Switch to first-person view'}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                  />
                 </svg>
               </button>
             </div>
@@ -830,10 +943,17 @@ export default function Play() {
                     ? 'bg-neon-blue/20 border-neon-blue text-neon-blue'
                     : 'bg-dark-800/90 border-dark-600 text-gray-400 hover:text-white'
                 }`}
-                title={viewRelativeControls ? 'View-relative controls (ON)' : 'Absolute controls (OFF)'}
+                title={
+                  viewRelativeControls ? 'View-relative controls (ON)' : 'Absolute controls (OFF)'
+                }
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                  />
                 </svg>
               </button>
             )}
@@ -850,7 +970,12 @@ export default function Play() {
                 title={autoRotate ? 'Stop rotation' : 'Start rotation'}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
                 </svg>
               </button>
             )}
@@ -868,14 +993,22 @@ export default function Play() {
                   <div className="mb-4 bg-dark-800 rounded-lg p-4 border border-neon-green">
                     <div className="text-neon-green font-bold text-lg mb-1">Score Submitted!</div>
                     <div className="text-white text-xl font-mono">{submitResult.name}</div>
-                    <div className="text-gray-400 text-sm">Rank #{submitResult.rank} of {submitResult.totalScores}</div>
+                    <div className="text-gray-400 text-sm">
+                      Rank #{submitResult.rank} of {submitResult.totalScores}
+                    </div>
                   </div>
                 )}
 
                 {showNameInput && !submitResult && (
                   <div className="mb-4">
                     <div className="text-gray-300 text-sm mb-3">Enter your name:</div>
-                    <form onSubmit={(e) => { e.preventDefault(); handleSubmitScore(); }} className="flex flex-col items-center gap-3">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSubmitScore();
+                      }}
+                      className="flex flex-col items-center gap-3"
+                    >
                       <input
                         type="text"
                         value={playerName}
@@ -886,9 +1019,7 @@ export default function Play() {
                         className="w-48 px-4 py-2 bg-dark-700 border border-dark-600 rounded-lg text-white text-center text-lg focus:outline-none focus:border-neon-green"
                       />
 
-                      {submitError && (
-                        <div className="text-red-400 text-sm">{submitError}</div>
-                      )}
+                      {submitError && <div className="text-red-400 text-sm">{submitError}</div>}
 
                       <div className="flex gap-2">
                         <button
@@ -961,7 +1092,11 @@ export default function Play() {
                     className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </button>
                   <div className="flex gap-1">
@@ -976,7 +1111,11 @@ export default function Play() {
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                        <path
+                          fillRule="evenodd"
+                          d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </button>
                     <div className="w-12 h-12 bg-dark-900 border border-dark-600 rounded-lg flex items-center justify-center">
@@ -993,7 +1132,11 @@ export default function Play() {
                       className="w-9 h-12 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        <path
+                          fillRule="evenodd"
+                          d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                     </button>
                   </div>
@@ -1008,7 +1151,11 @@ export default function Play() {
                     className="w-12 h-9 bg-dark-700 hover:bg-dark-600 active:bg-neon-green/20 active:border-neon-green border border-dark-600 rounded-lg flex items-center justify-center text-gray-300 active:text-neon-green transition-colors select-none"
                   >
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -1017,7 +1164,9 @@ export default function Play() {
               {/* Y-axis Buttons - only shown in orbit view */}
               {!isFirstPerson && (
                 <div className="flex flex-col items-center">
-                  <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">Up/Down</div>
+                  <div className="text-[10px] text-gray-500 mb-2 uppercase tracking-wider">
+                    Up/Down
+                  </div>
                   <div className="flex gap-3 -rotate-12">
                     {/* Down button - lower left */}
                     <div className="flex flex-col items-center mt-6">
@@ -1025,7 +1174,9 @@ export default function Play() {
                         onPointerDown={() => setDirection({ x: 0, y: -1, z: 0 })}
                         className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-pink/30 border-2 border-dark-500 active:border-neon-pink rounded-full flex items-center justify-center text-gray-300 active:text-neon-pink transition-colors select-none shadow-lg"
                       >
-                        <span className="font-bold text-lg">{DEFAULT_CONTROL_SCHEME.yKeys.down[0].toUpperCase()}</span>
+                        <span className="font-bold text-lg">
+                          {DEFAULT_CONTROL_SCHEME.yKeys.down[0].toUpperCase()}
+                        </span>
                       </button>
                       <span className="text-[9px] text-gray-500 mt-1 rotate-12">Down</span>
                     </div>
@@ -1035,7 +1186,9 @@ export default function Play() {
                         onPointerDown={() => setDirection({ x: 0, y: 1, z: 0 })}
                         className="w-14 h-14 bg-dark-700 hover:bg-dark-600 active:bg-neon-blue/30 border-2 border-dark-500 active:border-neon-blue rounded-full flex items-center justify-center text-gray-300 active:text-neon-blue transition-colors select-none shadow-lg"
                       >
-                        <span className="font-bold text-lg">{DEFAULT_CONTROL_SCHEME.yKeys.up[0].toUpperCase()}</span>
+                        <span className="font-bold text-lg">
+                          {DEFAULT_CONTROL_SCHEME.yKeys.up[0].toUpperCase()}
+                        </span>
                       </button>
                       <span className="text-[9px] text-gray-500 mt-1 rotate-12">Up</span>
                     </div>
@@ -1051,8 +1204,7 @@ export default function Play() {
                 <span className="text-gray-400">
                   {isFirstPerson
                     ? 'W/S pitch, A/D turn (or Arrow keys)'
-                    : DEFAULT_CONTROL_SCHEME.hint
-                  }
+                    : DEFAULT_CONTROL_SCHEME.hint}
                 </span>
               </div>
             </div>

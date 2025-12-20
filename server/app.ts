@@ -34,19 +34,27 @@ export function createApp() {
   app.use(express.json({ limit: '100kb' }));
 
   // API Routes - apply rate limiter to POST submissions
-  app.use('/api/leaderboard', (req, res, next) => {
-    if (req.method === 'POST') {
-      return submissionLimiter(req, res, next);
-    }
-    next();
-  }, leaderboardRoutes);
+  app.use(
+    '/api/leaderboard',
+    (req, res, next) => {
+      if (req.method === 'POST') {
+        return submissionLimiter(req, res, next);
+      }
+      next();
+    },
+    leaderboardRoutes
+  );
 
-  app.use('/api/manual', (req, res, next) => {
-    if (req.method === 'POST') {
-      return submissionLimiter(req, res, next);
-    }
-    next();
-  }, manualRoutes);
+  app.use(
+    '/api/manual',
+    (req, res, next) => {
+      if (req.method === 'POST') {
+        return submissionLimiter(req, res, next);
+      }
+      next();
+    },
+    manualRoutes
+  );
 
   // Health check
   app.get('/api/health', (_req, res) => {

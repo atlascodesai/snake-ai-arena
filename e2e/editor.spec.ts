@@ -15,7 +15,7 @@ test.describe('Editor Page', () => {
   test('should load Monaco editor without CSP errors', async ({ page }) => {
     // Collect console errors
     const errors: string[] = [];
-    page.on('console', msg => {
+    page.on('console', (msg) => {
       if (msg.type() === 'error') {
         errors.push(msg.text());
       }
@@ -28,9 +28,8 @@ test.describe('Editor Page', () => {
     await expect(page.locator('.view-lines').first()).toBeVisible({ timeout: 10000 });
 
     // No CSP-related errors should be present
-    const cspErrors = errors.filter(e =>
-      e.includes('Content-Security-Policy') ||
-      e.includes('Monaco initialization')
+    const cspErrors = errors.filter(
+      (e) => e.includes('Content-Security-Policy') || e.includes('Monaco initialization')
     );
     expect(cspErrors).toHaveLength(0);
   });
@@ -40,7 +39,8 @@ test.describe('Editor Page', () => {
     // On mobile: tabs switch between them
     const hasEditor = await page.locator('.monaco-editor').first().isVisible();
     const hasCanvas = await page.locator('canvas[data-engine*="three"]').isVisible();
-    const hasTabs = await page.locator('button:has-text("Code"), button:has-text("Game")').count() > 0;
+    const hasTabs =
+      (await page.locator('button:has-text("Code"), button:has-text("Game")').count()) > 0;
 
     // Either both visible (desktop) or tabs present (mobile)
     expect(hasEditor || hasCanvas || hasTabs).toBe(true);

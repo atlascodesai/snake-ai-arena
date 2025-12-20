@@ -18,17 +18,51 @@ export default defineConfig({
       exclude: [
         'node_modules/',
         'src/test/',
+        'src/private/',
         '**/*.d.ts',
         '**/*.config.*',
+        '**/*.test.ts',
+        '**/*.spec.ts',
         'dist/',
+        'e2e/',
       ],
       thresholds: {
-        // Start with achievable thresholds and increase over time
-        // Current: 11% overall, but game logic is 73-100%
+        // Overall thresholds (low because UI is tested via E2E, not unit tests)
         lines: 10,
         functions: 10,
         branches: 10,
         statements: 10,
+        // Per-directory thresholds for critical game logic
+        'src/game/HeadlessGame.ts': {
+          lines: 85,
+          functions: 80,
+          branches: 80,
+          statements: 85,
+        },
+        'src/game/algorithms.ts': {
+          lines: 90,
+          functions: 90,
+          branches: 85,
+          statements: 90,
+        },
+        'src/game/utils.ts': {
+          lines: 95,
+          functions: 95,
+          branches: 85,
+          statements: 95,
+        },
+        'src/game/controls/': {
+          lines: 80,
+          functions: 75,
+          branches: 70,
+          statements: 80,
+        },
+        'server/routes/': {
+          lines: 75,
+          functions: 80,
+          branches: 60,
+          statements: 75,
+        },
       },
     },
   },

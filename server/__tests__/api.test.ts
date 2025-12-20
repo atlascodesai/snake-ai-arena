@@ -13,13 +13,11 @@ const createMockDb = () => ({
   async init() {},
 
   async getLeaderboard() {
-    return [...this.submissions]
-      .sort((a, b) => b.avg_score - a.avg_score)
-      .slice(0, 50);
+    return [...this.submissions].sort((a, b) => b.avg_score - a.avg_score).slice(0, 50);
   },
 
   async getSubmission(id: number) {
-    return this.submissions.find(s => s.id === id) || null;
+    return this.submissions.find((s) => s.id === id) || null;
   },
 
   async insertSubmission(
@@ -47,7 +45,7 @@ const createMockDb = () => ({
   },
 
   async getRank(avgScore: number) {
-    const count = this.submissions.filter(s => s.avg_score > avgScore).length;
+    const count = this.submissions.filter((s) => s.avg_score > avgScore).length;
     return { rank: count + 1 };
   },
 
@@ -56,12 +54,16 @@ const createMockDb = () => ({
   },
 
   async getManualLeaderboard() {
-    return [...this.manualScores]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 50);
+    return [...this.manualScores].sort((a, b) => b.score - a.score).slice(0, 50);
   },
 
-  async insertManualScore(name: string, score: number, length: number, controlType: string, viewMode: string = 'orbit') {
+  async insertManualScore(
+    name: string,
+    score: number,
+    length: number,
+    controlType: string,
+    viewMode: string = 'orbit'
+  ) {
     const entry = {
       id: this.manualNextId++,
       name,
@@ -76,7 +78,7 @@ const createMockDb = () => ({
   },
 
   async getManualRank(score: number) {
-    const count = this.manualScores.filter(s => s.score > score).length;
+    const count = this.manualScores.filter((s) => s.score > score).length;
     return { rank: count + 1 };
   },
 
@@ -93,7 +95,7 @@ const createMockDb = () => ({
 });
 
 // Create the mock instance
-const mockDb = createMockDb();
+const _mockDb = createMockDb();
 
 // Mock the db module - factory must be inline and cannot reference variables
 vi.mock('../db.js', () => {
@@ -106,9 +108,7 @@ vi.mock('../db.js', () => {
     async init() {},
 
     async getLeaderboard() {
-      return [...this.submissions]
-        .sort((a: any, b: any) => b.avg_score - a.avg_score)
-        .slice(0, 50);
+      return [...this.submissions].sort((a: any, b: any) => b.avg_score - a.avg_score).slice(0, 50);
     },
 
     async getSubmission(id: number) {
@@ -149,12 +149,16 @@ vi.mock('../db.js', () => {
     },
 
     async getManualLeaderboard() {
-      return [...this.manualScores]
-        .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 50);
+      return [...this.manualScores].sort((a: any, b: any) => b.score - a.score).slice(0, 50);
     },
 
-    async insertManualScore(name: string, score: number, length: number, controlType: string, viewMode: string = 'orbit') {
+    async insertManualScore(
+      name: string,
+      score: number,
+      length: number,
+      controlType: string,
+      viewMode: string = 'orbit'
+    ) {
       const entry = {
         id: this.manualNextId++,
         name,
@@ -240,8 +244,28 @@ describe('API Routes', () => {
     beforeEach(() => {
       // Add some test submissions
       getMockDb().submissions = [
-        { id: 1, name: 'Test1', code: 'code1', lines_of_code: 10, avg_score: 100, max_score: 150, survival_rate: 50, games_played: 10, created_at: '2024-01-01' },
-        { id: 2, name: 'Test2', code: 'code2', lines_of_code: 20, avg_score: 200, max_score: 250, survival_rate: 75, games_played: 10, created_at: '2024-01-02' },
+        {
+          id: 1,
+          name: 'Test1',
+          code: 'code1',
+          lines_of_code: 10,
+          avg_score: 100,
+          max_score: 150,
+          survival_rate: 50,
+          games_played: 10,
+          created_at: '2024-01-01',
+        },
+        {
+          id: 2,
+          name: 'Test2',
+          code: 'code2',
+          lines_of_code: 20,
+          avg_score: 200,
+          max_score: 250,
+          survival_rate: 75,
+          games_played: 10,
+          created_at: '2024-01-02',
+        },
       ];
     });
 
@@ -277,7 +301,17 @@ describe('API Routes', () => {
   describe('GET /api/leaderboard/:id', () => {
     beforeEach(() => {
       getMockDb().submissions = [
-        { id: 1, name: 'Test1', code: 'function test() {}', lines_of_code: 10, avg_score: 100, max_score: 150, survival_rate: 50, games_played: 10, created_at: '2024-01-01' },
+        {
+          id: 1,
+          name: 'Test1',
+          code: 'function test() {}',
+          lines_of_code: 10,
+          avg_score: 100,
+          max_score: 150,
+          survival_rate: 50,
+          games_played: 10,
+          created_at: '2024-01-01',
+        },
       ];
     });
 
@@ -301,16 +335,14 @@ describe('API Routes', () => {
 
   describe('POST /api/leaderboard', () => {
     it('should create new submission', async () => {
-      const response = await request(app)
-        .post('/api/leaderboard')
-        .send({
-          name: 'NewAlgorithm',
-          code: 'function algorithm(ctx) {\n  return { x: 1, y: 0, z: 0 };\n}',
-          avgScore: 500,
-          maxScore: 750,
-          survivalRate: 80,
-          gamesPlayed: 10,
-        });
+      const response = await request(app).post('/api/leaderboard').send({
+        name: 'NewAlgorithm',
+        code: 'function algorithm(ctx) {\n  return { x: 1, y: 0, z: 0 };\n}',
+        avgScore: 500,
+        maxScore: 750,
+        survivalRate: 80,
+        gamesPlayed: 10,
+      });
 
       expect(response.status).toBe(201);
       expect(response.body.name).toBe('NewAlgorithm');
@@ -321,9 +353,7 @@ describe('API Routes', () => {
     });
 
     it('should reject missing required fields', async () => {
-      const response = await request(app)
-        .post('/api/leaderboard')
-        .send({ name: 'Test' });
+      const response = await request(app).post('/api/leaderboard').send({ name: 'Test' });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Missing required fields');
@@ -343,13 +373,11 @@ describe('API Routes', () => {
     });
 
     it('should reject invalid score', async () => {
-      const response = await request(app)
-        .post('/api/leaderboard')
-        .send({
-          name: 'Test',
-          code: 'function test() {}',
-          avgScore: -1,
-        });
+      const response = await request(app).post('/api/leaderboard').send({
+        name: 'Test',
+        code: 'function test() {}',
+        avgScore: -1,
+      });
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Invalid score');
@@ -380,9 +408,39 @@ function algorithm(ctx) {
   describe('GET /api/leaderboard/preview/:avgScore', () => {
     beforeEach(() => {
       getMockDb().submissions = [
-        { id: 1, name: 'Top', code: 'code', lines_of_code: 10, avg_score: 1000, max_score: 1000, survival_rate: 100, games_played: 10, created_at: '2024-01-01' },
-        { id: 2, name: 'Mid', code: 'code', lines_of_code: 10, avg_score: 500, max_score: 500, survival_rate: 50, games_played: 10, created_at: '2024-01-02' },
-        { id: 3, name: 'Low', code: 'code', lines_of_code: 10, avg_score: 100, max_score: 100, survival_rate: 25, games_played: 10, created_at: '2024-01-03' },
+        {
+          id: 1,
+          name: 'Top',
+          code: 'code',
+          lines_of_code: 10,
+          avg_score: 1000,
+          max_score: 1000,
+          survival_rate: 100,
+          games_played: 10,
+          created_at: '2024-01-01',
+        },
+        {
+          id: 2,
+          name: 'Mid',
+          code: 'code',
+          lines_of_code: 10,
+          avg_score: 500,
+          max_score: 500,
+          survival_rate: 50,
+          games_played: 10,
+          created_at: '2024-01-02',
+        },
+        {
+          id: 3,
+          name: 'Low',
+          code: 'code',
+          lines_of_code: 10,
+          avg_score: 100,
+          max_score: 100,
+          survival_rate: 25,
+          games_played: 10,
+          created_at: '2024-01-03',
+        },
       ];
     });
 
@@ -406,8 +464,24 @@ function algorithm(ctx) {
     describe('GET /api/manual', () => {
       beforeEach(() => {
         getMockDb().manualScores = [
-          { id: 1, name: 'Player1', score: 500, length: 53, control_type: 'wasd-zx', view_mode: 'orbit', created_at: '2024-01-01' },
-          { id: 2, name: 'Player2', score: 300, length: 33, control_type: 'arrows-ws', view_mode: 'fpv', created_at: '2024-01-02' },
+          {
+            id: 1,
+            name: 'Player1',
+            score: 500,
+            length: 53,
+            control_type: 'wasd-zx',
+            view_mode: 'orbit',
+            created_at: '2024-01-01',
+          },
+          {
+            id: 2,
+            name: 'Player2',
+            score: 300,
+            length: 33,
+            control_type: 'arrows-ws',
+            view_mode: 'fpv',
+            created_at: '2024-01-02',
+          },
         ];
       });
 
@@ -432,14 +506,12 @@ function algorithm(ctx) {
 
     describe('POST /api/manual', () => {
       it('should create manual score entry', async () => {
-        const response = await request(app)
-          .post('/api/manual')
-          .send({
-            name: 'TestPlayer',
-            score: 420,
-            length: 45,
-            controlType: 'wasd-zx',
-          });
+        const response = await request(app).post('/api/manual').send({
+          name: 'TestPlayer',
+          score: 420,
+          length: 45,
+          controlType: 'wasd-zx',
+        });
 
         expect(response.status).toBe(201);
         expect(response.body.name).toBe('TestPlayer');
@@ -448,57 +520,49 @@ function algorithm(ctx) {
       });
 
       it('should reject invalid score/length relationship', async () => {
-        const response = await request(app)
-          .post('/api/manual')
-          .send({
-            name: 'Cheater',
-            score: 1000,
-            length: 5, // Length doesn't match score
-            controlType: 'wasd-zx',
-          });
+        const response = await request(app).post('/api/manual').send({
+          name: 'Cheater',
+          score: 1000,
+          length: 5, // Length doesn't match score
+          controlType: 'wasd-zx',
+        });
 
         expect(response.status).toBe(400);
       });
 
       it('should accept viewMode parameter', async () => {
-        const response = await request(app)
-          .post('/api/manual')
-          .send({
-            name: 'FPVPlayer',
-            score: 100,
-            length: 13,
-            controlType: 'wasd-zx',
-            viewMode: 'fpv',
-          });
+        const response = await request(app).post('/api/manual').send({
+          name: 'FPVPlayer',
+          score: 100,
+          length: 13,
+          controlType: 'wasd-zx',
+          viewMode: 'fpv',
+        });
 
         expect(response.status).toBe(201);
         expect(response.body.viewMode).toBe('fpv');
       });
 
       it('should default viewMode to orbit when not provided', async () => {
-        const response = await request(app)
-          .post('/api/manual')
-          .send({
-            name: 'OrbitPlayer',
-            score: 50,
-            length: 8,
-            controlType: 'wasd-zx',
-          });
+        const response = await request(app).post('/api/manual').send({
+          name: 'OrbitPlayer',
+          score: 50,
+          length: 8,
+          controlType: 'wasd-zx',
+        });
 
         expect(response.status).toBe(201);
         expect(response.body.viewMode).toBe('orbit');
       });
 
       it('should default invalid viewMode to orbit', async () => {
-        const response = await request(app)
-          .post('/api/manual')
-          .send({
-            name: 'InvalidView',
-            score: 70,
-            length: 10,
-            controlType: 'wasd-zx',
-            viewMode: 'invalid',
-          });
+        const response = await request(app).post('/api/manual').send({
+          name: 'InvalidView',
+          score: 70,
+          length: 10,
+          controlType: 'wasd-zx',
+          viewMode: 'invalid',
+        });
 
         expect(response.status).toBe(201);
         expect(response.body.viewMode).toBe('orbit');

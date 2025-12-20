@@ -133,7 +133,7 @@ describe('getFirstPersonHUD', () => {
       { x: 0, y: 0, z: 0 },
       { x: -1, y: 0, z: 0 },
       { x: -1, y: 1, z: 0 }, // Body segment above and behind
-      { x: 0, y: 1, z: 0 },  // Body segment directly above
+      { x: 0, y: 1, z: 0 }, // Body segment directly above
     ];
     const food: Position = { x: 5, y: 0, z: 0 };
     const direction: Direction = { x: 1, y: 0, z: 0 };

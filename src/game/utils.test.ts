@@ -14,7 +14,7 @@ import {
   normalizeDirection,
   isValidDirection,
 } from './utils';
-import type { Position, Direction } from './types';
+import type { Position } from './types';
 
 describe('Constants', () => {
   it('should have correct grid size', () => {
@@ -183,11 +183,7 @@ describe('findPathBFS', () => {
     const start = { x: 0, y: 0, z: 0 };
     const goal = { x: 2, y: 0, z: 0 };
     // Surround start with obstacles
-    const obstacles = new Set([
-      '1,0,0', '-1,0,0',
-      '0,1,0', '0,-1,0',
-      '0,0,1', '0,0,-1',
-    ]);
+    const obstacles = new Set(['1,0,0', '-1,0,0', '0,1,0', '0,-1,0', '0,0,1', '0,0,-1']);
 
     const path = findPathBFS(start, goal, obstacles);
     expect(path).toBeNull();
@@ -211,10 +207,16 @@ describe('findPathBFS', () => {
 
 describe('normalizeDirection', () => {
   it('should return correct direction for adjacent positions', () => {
-    expect(normalizeDirection({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }))
-      .toEqual({ x: 1, y: 0, z: 0 });
-    expect(normalizeDirection({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 }))
-      .toEqual({ x: 0, y: -1, z: 0 });
+    expect(normalizeDirection({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 })).toEqual({
+      x: 1,
+      y: 0,
+      z: 0,
+    });
+    expect(normalizeDirection({ x: 0, y: 0, z: 0 }, { x: 0, y: -1, z: 0 })).toEqual({
+      x: 0,
+      y: -1,
+      z: 0,
+    });
   });
 
   it('should handle wrapping', () => {

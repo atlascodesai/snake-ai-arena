@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { HeadlessGame, runBenchmark } from './HeadlessGame';
 import type { Direction, GameContext } from './types';
 
@@ -32,19 +32,20 @@ const greedyAlgorithm = (ctx: GameContext): Direction | null => {
 
   for (const dir of directions) {
     const newHead = {
-      x: (head.x + dir.x + 8) % 16 - 8,
-      y: (head.y + dir.y + 8) % 16 - 8,
-      z: (head.z + dir.z + 8) % 16 - 8,
+      x: ((head.x + dir.x + 8) % 16) - 8,
+      y: ((head.y + dir.y + 8) % 16) - 8,
+      z: ((head.z + dir.z + 8) % 16) - 8,
     };
 
     // Check collision with body
-    const hitsBody = snake.slice(1).some(
-      seg => seg.x === newHead.x && seg.y === newHead.y && seg.z === newHead.z
-    );
+    const hitsBody = snake
+      .slice(1)
+      .some((seg) => seg.x === newHead.x && seg.y === newHead.y && seg.z === newHead.z);
 
     if (hitsBody) continue;
 
-    const dist = Math.abs(newHead.x - food.x) + Math.abs(newHead.y - food.y) + Math.abs(newHead.z - food.z);
+    const dist =
+      Math.abs(newHead.x - food.x) + Math.abs(newHead.y - food.y) + Math.abs(newHead.z - food.z);
     if (dist < bestDist) {
       bestDist = dist;
       bestDir = dir;
@@ -73,7 +74,7 @@ describe('HeadlessGame', () => {
       const state = game.getState();
 
       const foodPos = `${state.food.x},${state.food.y},${state.food.z}`;
-      const snakePositions = state.snake.map(p => `${p.x},${p.y},${p.z}`);
+      const snakePositions = state.snake.map((p) => `${p.x},${p.y},${p.z}`);
 
       expect(snakePositions).not.toContain(foodPos);
     });
@@ -204,9 +205,7 @@ describe('HeadlessGame', () => {
         const newFood = game.getState().food;
         // Food position should have changed
         expect(
-          newFood.x !== initialFood.x ||
-          newFood.y !== initialFood.y ||
-          newFood.z !== initialFood.z
+          newFood.x !== initialFood.x || newFood.y !== initialFood.y || newFood.z !== initialFood.z
         ).toBe(true);
       }
     });
@@ -312,10 +311,10 @@ describe('HeadlessGame', () => {
 
     it('should produce different results with different seeds', () => {
       const game1 = new HeadlessGame(greedyAlgorithm, 1, 500);
-      const final1 = game1.runToCompletion();
+      game1.runToCompletion();
 
       const game2 = new HeadlessGame(greedyAlgorithm, 2, 500);
-      const final2 = game2.runToCompletion();
+      game2.runToCompletion();
 
       // Results may differ (not guaranteed, but likely with different seeds)
       // At minimum, food positions should be different
@@ -324,8 +323,8 @@ describe('HeadlessGame', () => {
 
       expect(
         state1.food.x !== state2.food.x ||
-        state1.food.y !== state2.food.y ||
-        state1.food.z !== state2.food.z
+          state1.food.y !== state2.food.y ||
+          state1.food.z !== state2.food.z
       ).toBe(true);
     });
   });
@@ -365,13 +364,13 @@ describe('runBenchmark', () => {
         { x: 0, y: 0, z: -1 },
       ]) {
         const newHead = {
-          x: (head.x + dir.x + 8) % 16 - 8,
-          y: (head.y + dir.y + 8) % 16 - 8,
-          z: (head.z + dir.z + 8) % 16 - 8,
+          x: ((head.x + dir.x + 8) % 16) - 8,
+          y: ((head.y + dir.y + 8) % 16) - 8,
+          z: ((head.z + dir.z + 8) % 16) - 8,
         };
-        const hitsBody = ctx.snake.slice(1).some(
-          seg => seg.x === newHead.x && seg.y === newHead.y && seg.z === newHead.z
-        );
+        const hitsBody = ctx.snake
+          .slice(1)
+          .some((seg) => seg.x === newHead.x && seg.y === newHead.y && seg.z === newHead.z);
         if (!hitsBody) return dir;
       }
       return { x: 1, y: 0, z: 0 };

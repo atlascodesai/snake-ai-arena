@@ -135,11 +135,17 @@ function SnakeCanvas({ size, className = '' }: { size: number; className?: strin
         const forkLen = 6 * scale;
         ctx.beginPath();
         ctx.moveTo(tongueX, tongueY);
-        ctx.lineTo(tongueX + Math.cos(angle + 0.5) * forkLen, tongueY + Math.sin(angle + 0.5) * forkLen);
+        ctx.lineTo(
+          tongueX + Math.cos(angle + 0.5) * forkLen,
+          tongueY + Math.sin(angle + 0.5) * forkLen
+        );
         ctx.stroke();
         ctx.beginPath();
         ctx.moveTo(tongueX, tongueY);
-        ctx.lineTo(tongueX + Math.cos(angle - 0.5) * forkLen, tongueY + Math.sin(angle - 0.5) * forkLen);
+        ctx.lineTo(
+          tongueX + Math.cos(angle - 0.5) * forkLen,
+          tongueY + Math.sin(angle - 0.5) * forkLen
+        );
         ctx.stroke();
       }
 
@@ -228,10 +234,7 @@ function SnakeModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div
-        className="relative"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative" onClick={(e) => e.stopPropagation()}>
         <SnakeCanvas size={300} />
         <button
           onClick={onClose}
@@ -239,7 +242,12 @@ function SnakeModal({ onClose }: { onClose: () => void }) {
           aria-label="Close"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -248,7 +256,11 @@ function SnakeModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function AnimatedSnake({ size = 200, className = '', clickable = true }: AnimatedSnakeProps) {
+export function AnimatedSnake({
+  size = 200,
+  className = '',
+  clickable = true,
+}: AnimatedSnakeProps) {
   const [showModal, setShowModal] = useState(false);
 
   if (!clickable) {

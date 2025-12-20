@@ -240,7 +240,7 @@ export default function CodeEditor({
   onChange,
   readOnly = false,
   liveContext,
-  isRunning = false,
+  isRunning: _isRunning = false,
 }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [showLiveCtx, setShowLiveCtx] = useState(true);
@@ -251,8 +251,7 @@ export default function CodeEditor({
   };
 
   // Format position for display
-  const formatPos = (p: { x: number; y: number; z: number }) =>
-    `{${p.x},${p.y},${p.z}}`;
+  const formatPos = (p: { x: number; y: number; z: number }) => `{${p.x},${p.y},${p.z}}`;
 
   return (
     <div className="h-full flex flex-col">
@@ -289,7 +288,9 @@ export default function CodeEditor({
                 : 'bg-dark-700 text-gray-400 hover:text-white'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${showLiveCtx ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${showLiveCtx ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}
+            />
             {showLiveCtx ? 'LIVE' : 'ctx'}
           </button>
         )}

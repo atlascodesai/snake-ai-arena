@@ -35,12 +35,12 @@ export const demoAlgorithm = (ctx: GameContext): Direction | null => {
   // Creates a 3D spiral effect
   const phase = Math.floor(frame / 8) % 6;
   const directions: Direction[] = [
-    { x: 1, y: 0, z: 0 },   // +X
-    { x: 0, y: 1, z: 0 },   // +Y
-    { x: -1, y: 0, z: 0 },  // -X
-    { x: 0, y: -1, z: 0 },  // -Y
-    { x: 0, y: 0, z: 1 },   // +Z
-    { x: 0, y: 0, z: -1 },  // -Z
+    { x: 1, y: 0, z: 0 }, // +X
+    { x: 0, y: 1, z: 0 }, // +Y
+    { x: -1, y: 0, z: 0 }, // -X
+    { x: 0, y: -1, z: 0 }, // -Y
+    { x: 0, y: 0, z: 1 }, // +Z
+    { x: 0, y: 0, z: -1 }, // -Z
   ];
 
   // Try preferred direction first
@@ -138,7 +138,7 @@ export const greedyAlgorithm = (ctx: GameContext): Direction | null => {
     });
 
     // Don't hit body
-    if (snake.slice(1).some(seg => posEqual(seg, newHead))) {
+    if (snake.slice(1).some((seg) => posEqual(seg, newHead))) {
       continue;
     }
 
