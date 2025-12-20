@@ -3,20 +3,31 @@
  * Separate controls for sound effects (SFX) and music
  */
 
-import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  ReactNode,
+} from 'react';
 
 // Audio context singleton
 let audioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext {
   if (!audioCtx) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
   return audioCtx;
 }
 
 // PYL-style bouncing frequency pattern (for music loop)
-const FREQ_PATTERN = [1, 1.25, 1.5, 1.25, 1, 0.8, 1, 1.33, 1.5, 1.33, 1, 0.9, 1.1, 1.4, 1.2, 1, 0.85, 1.15];
+const FREQ_PATTERN = [
+  1, 1.25, 1.5, 1.25, 1, 0.8, 1, 1.33, 1.5, 1.33, 1, 0.9, 1.1, 1.4, 1.2, 1, 0.85, 1.15,
+];
 const BASE_FREQ = 400;
 const VOLUME = 0.15;
 
@@ -130,7 +141,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') ctx.resume();
 
-    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
     notes.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -150,40 +161,46 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Set loop speed
-  const setSpeed = useCallback((interval: number) => {
-    speedRef.current = interval;
-    // If running, restart with new speed
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+  const setSpeed = useCallback(
+    (interval: number) => {
+      speedRef.current = interval;
+      // If running, restart with new speed
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = window.setInterval(() => {
+          playTick(beatCountRef.current);
+          beatCountRef.current++;
+        }, speedRef.current);
+      }
+    },
+    [playTick]
+  );
+
+  // Start the music loop
+  const startLoop = useCallback(
+    (interval?: number) => {
+      if (intervalRef.current) return;
+
+      if (interval) speedRef.current = interval;
+
+      // Don't start if music is disabled
+      if (!musicEnabledRef.current) {
+        return;
+      }
+
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      setIsPlaying(true);
+      beatCountRef.current = 0;
+
       intervalRef.current = window.setInterval(() => {
         playTick(beatCountRef.current);
         beatCountRef.current++;
       }, speedRef.current);
-    }
-  }, [playTick]);
-
-  // Start the music loop
-  const startLoop = useCallback((interval?: number) => {
-    if (intervalRef.current) return;
-
-    if (interval) speedRef.current = interval;
-
-    // Don't start if music is disabled
-    if (!musicEnabledRef.current) {
-      return;
-    }
-
-    const ctx = getAudioContext();
-    if (ctx.state === 'suspended') ctx.resume();
-
-    setIsPlaying(true);
-    beatCountRef.current = 0;
-
-    intervalRef.current = window.setInterval(() => {
-      playTick(beatCountRef.current);
-      beatCountRef.current++;
-    }, speedRef.current);
-  }, [playTick]);
+    },
+    [playTick]
+  );
 
   // Stop the music loop
   const stopLoop = useCallback(() => {
@@ -196,7 +213,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   // Toggle SFX
   const toggleSfx = useCallback(() => {
-    setSfxEnabled(prev => {
+    setSfxEnabled((prev) => {
       const newEnabled = !prev;
       sfxEnabledRef.current = newEnabled;
       // Resume audio context on first interaction
@@ -210,7 +227,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   // Toggle Music
   const toggleMusic = useCallback(() => {
-    setMusicEnabled(prev => {
+    setMusicEnabled((prev) => {
       const newEnabled = !prev;
       musicEnabledRef.current = newEnabled;
       if (newEnabled) {
@@ -240,31 +257,35 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AudioCtx.Provider value={{
-      // SFX
-      sfxEnabled,
-      toggleSfx,
-      playWhammy,
-      playWin,
+    <AudioCtx.Provider
+      value={{
+        // SFX
+        sfxEnabled,
+        toggleSfx,
+        playWhammy,
+        playWin,
 
-      // Music
-      musicEnabled,
-      isPlaying,
-      toggleMusic,
-      startLoop,
-      stopLoop,
-      setSpeed,
+        // Music
+        musicEnabled,
+        isPlaying,
+        toggleMusic,
+        startLoop,
+        stopLoop,
+        setSpeed,
 
-      // Legacy
-      isMuted: !musicEnabled,
-      toggleMute,
-      playTick,
-    }}>
+        // Legacy
+        isMuted: !musicEnabled,
+        toggleMute,
+        playTick,
+      }}
+    >
       {children}
     </AudioCtx.Provider>
   );
 }
 
+// Standard React pattern: export hook alongside provider
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAudio() {
   const context = useContext(AudioCtx);
   if (!context) {

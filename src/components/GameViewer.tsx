@@ -3,7 +3,7 @@
  * Renders the game state using React Three Fiber
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -16,7 +16,14 @@ interface GameViewerProps {
 }
 
 // Snake segment component
-function SnakeSegment({ position, isHead, index }: { position: Position; isHead: boolean; index: number }) {
+function SnakeSegment({
+  position,
+  isHead,
+}: {
+  position: Position;
+  isHead: boolean;
+  index: number;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
 
   // Animate head glow
@@ -32,10 +39,7 @@ function SnakeSegment({ position, isHead, index }: { position: Position; isHead:
   const emissive = isHead ? '#00ff88' : '#004422';
 
   return (
-    <mesh
-      ref={meshRef}
-      position={[position.x * 2, position.y * 2, position.z * 2]}
-    >
+    <mesh ref={meshRef} position={[position.x * 2, position.y * 2, position.z * 2]}>
       <boxGeometry args={[scale, scale, scale]} />
       <meshStandardMaterial
         color={color}
@@ -62,10 +66,7 @@ function Food({ position }: { position: Position }) {
   });
 
   return (
-    <mesh
-      ref={meshRef}
-      position={[position.x * 2, position.y * 2, position.z * 2]}
-    >
+    <mesh ref={meshRef} position={[position.x * 2, position.y * 2, position.z * 2]}>
       <octahedronGeometry args={[1, 0]} />
       <meshStandardMaterial
         color="#ff0088"
@@ -117,9 +118,10 @@ function GridCage() {
 
 // Camera controller with auto-rotation
 function CameraController() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
 
-  useFrame(({ clock }) => {
+  useFrame(() => {
     if (controlsRef.current) {
       controlsRef.current.autoRotate = true;
       controlsRef.current.autoRotateSpeed = 0.5;
@@ -153,12 +155,7 @@ function Scene({ gameState }: { gameState: GameState }) {
 
       {/* Snake */}
       {gameState.snake.map((segment, index) => (
-        <SnakeSegment
-          key={index}
-          position={segment}
-          isHead={index === 0}
-          index={index}
-        />
+        <SnakeSegment key={index} position={segment} isHead={index === 0} index={index} />
       ))}
 
       {/* Food */}

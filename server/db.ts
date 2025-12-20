@@ -31,11 +31,11 @@ export interface ManualScoreRow {
 
 // Control type constants
 export const CONTROL_TYPES = ['wasd-zx', 'wasd-qe', 'arrows-ws'] as const;
-export type ControlType = typeof CONTROL_TYPES[number];
+export type ControlType = (typeof CONTROL_TYPES)[number];
 
 // View mode constants
 export const VIEW_MODES = ['orbit', 'fpv'] as const;
-export type ViewMode = typeof VIEW_MODES[number];
+export type ViewMode = (typeof VIEW_MODES)[number];
 
 // PostgreSQL connection pool
 let pgPool: Pool | null = null;
@@ -44,8 +44,8 @@ async function initPostgres() {
   if (!process.env.DATABASE_URL) {
     throw new Error(
       'DATABASE_URL environment variable is required.\n' +
-      'For local development, use: npm run docker:dev\n' +
-      'This will start PostgreSQL in Docker automatically.'
+        'For local development, use: npm run docker:dev\n' +
+        'This will start PostgreSQL in Docker automatically.'
     );
   }
 
@@ -87,14 +87,18 @@ async function initPostgres() {
 
   // Add control_type column if it doesn't exist (migration for existing DBs)
   try {
-    await pgPool.query(`ALTER TABLE manual_scores ADD COLUMN IF NOT EXISTS control_type TEXT DEFAULT 'wasd-zx'`);
+    await pgPool.query(
+      `ALTER TABLE manual_scores ADD COLUMN IF NOT EXISTS control_type TEXT DEFAULT 'wasd-zx'`
+    );
   } catch (e) {
     // Column already exists or other error, ignore
   }
 
   // Add view_mode column if it doesn't exist (migration for existing DBs)
   try {
-    await pgPool.query(`ALTER TABLE manual_scores ADD COLUMN IF NOT EXISTS view_mode TEXT DEFAULT 'orbit'`);
+    await pgPool.query(
+      `ALTER TABLE manual_scores ADD COLUMN IF NOT EXISTS view_mode TEXT DEFAULT 'orbit'`
+    );
   } catch (e) {
     // Column already exists or other error, ignore
   }

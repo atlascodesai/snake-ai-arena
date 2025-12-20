@@ -33,10 +33,7 @@ export default function LeaderboardPage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const [manual, ai] = await Promise.all([
-          api.getManualLeaderboard(),
-          api.getLeaderboard(),
-        ]);
+        const [manual, ai] = await Promise.all([api.getManualLeaderboard(), api.getLeaderboard()]);
         setManualScores(manual);
         setAiSubmissions(ai);
       } catch (error) {
@@ -61,7 +58,12 @@ export default function LeaderboardPage() {
                 className="p-2 text-gray-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
 
@@ -70,35 +72,55 @@ export default function LeaderboardPage() {
                   <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                   <div className="absolute left-0 top-full mt-1 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl z-50 py-1">
                     <button
-                      onClick={() => { navigate('/'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>🏠</span><span>Arena Home</span>
+                      <span>🏠</span>
+                      <span>Arena Home</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/editor'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/editor');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>✏️</span><span>Editor</span>
+                      <span>✏️</span>
+                      <span>Editor</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/play'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/play');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-white hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>🎮</span><span>Manual Play</span>
+                      <span>🎮</span>
+                      <span>Manual Play</span>
                     </button>
                     <button
-                      onClick={() => { navigate('/leaderboard'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/leaderboard');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-neon-green hover:bg-dark-700 flex items-center gap-2"
                     >
-                      <span>🏆</span><span>Leaderboard</span>
+                      <span>🏆</span>
+                      <span>Leaderboard</span>
                     </button>
                     <hr className="my-1 border-dark-700" />
                     <button
-                      onClick={() => { navigate('/about'); setMenuOpen(false); }}
+                      onClick={() => {
+                        navigate('/about');
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-gray-400 hover:bg-dark-700 hover:text-white flex items-center gap-2"
                     >
-                      <span>ℹ️</span><span>About</span>
+                      <span>ℹ️</span>
+                      <span>About</span>
                     </button>
                   </div>
                 </>
@@ -188,9 +210,7 @@ export default function LeaderboardPage() {
                   {manualScores.map((score, index) => (
                     <tr
                       key={score.id}
-                      className={`border-t border-dark-700 ${
-                        index < 3 ? 'bg-dark-700/30' : ''
-                      }`}
+                      className={`border-t border-dark-700 ${index < 3 ? 'bg-dark-700/30' : ''}`}
                     >
                       <td className="py-3 px-4">
                         {index === 0 && <span className="text-yellow-400 text-lg">🥇</span>}
@@ -204,7 +224,9 @@ export default function LeaderboardPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className="font-bold text-neon-green">{score.score.toLocaleString()}</span>
+                        <span className="font-bold text-neon-green">
+                          {score.score.toLocaleString()}
+                        </span>
                       </td>
                       <td className="py-3 px-4 text-right text-gray-400 hidden sm:table-cell">
                         {score.length}
@@ -265,7 +287,9 @@ export default function LeaderboardPage() {
                         <span className="font-semibold text-white">{sub.name}</span>
                       </td>
                       <td className="py-3 px-4 text-right">
-                        <span className="font-bold text-neon-green">{Math.round(sub.avgScore).toLocaleString()}</span>
+                        <span className="font-bold text-neon-green">
+                          {Math.round(sub.avgScore).toLocaleString()}
+                        </span>
                       </td>
                       <td className="py-3 px-4 text-right text-neon-blue hidden sm:table-cell">
                         {sub.maxScore.toLocaleString()}

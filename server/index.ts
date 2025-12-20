@@ -56,17 +56,19 @@ if (!isProduction || process.env.ALLOW_LOCALHOST) {
   allowedOrigins.push('http://localhost:5173', 'http://localhost:3000', 'http://localhost:3001');
 }
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (same-origin, Postman, curl, etc.)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (same-origin, Postman, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 app.use(express.json({ limit: '100kb' }));
 
@@ -75,56 +77,62 @@ app.use(express.json({ limit: '100kb' }));
 // - unsafe-eval: Monaco Editor uses eval() internally, user algorithms use new Function()
 // - unsafe-inline: Tailwind CSS generates inline styles, Chatwoot uses inline scripts
 // These are acceptable tradeoffs for this application's functionality.
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'",
-        "'unsafe-inline'", // Required for Tailwind, Chatwoot, Vite dev
-        "'unsafe-eval'",   // Required for Monaco Editor and user algorithm execution (new Function)
-        "https://app.chatwoot.com",
-        "https://fonts.googleapis.com",
-        "https://cdn.jsdelivr.net", // Required for Monaco Editor CDN
-      ],
-      styleSrc: [
-        "'self'",
-        "'unsafe-inline'", // Required for Tailwind and Monaco
-        "https://fonts.googleapis.com",
-        "https://cdn.jsdelivr.net", // Required for Monaco Editor CDN
-      ],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: [
-        "'self'",
-        "https://app.chatwoot.com",
-        "wss://app.chatwoot.com",
-      ],
-      frameSrc: ["'self'", "https://app.chatwoot.com", "https://www.youtube.com"],
-      workerSrc: ["'self'", "blob:"], // For Web Workers
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Tailwind, Chatwoot, Vite dev
+          "'unsafe-eval'", // Required for Monaco Editor and user algorithm execution (new Function)
+          'https://app.chatwoot.com',
+          'https://fonts.googleapis.com',
+          'https://cdn.jsdelivr.net', // Required for Monaco Editor CDN
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Tailwind and Monaco
+          'https://fonts.googleapis.com',
+          'https://cdn.jsdelivr.net', // Required for Monaco Editor CDN
+        ],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+        connectSrc: ["'self'", 'https://app.chatwoot.com', 'wss://app.chatwoot.com'],
+        frameSrc: ["'self'", 'https://app.chatwoot.com', 'https://www.youtube.com'],
+        workerSrc: ["'self'", 'blob:'], // For Web Workers
+      },
     },
-  },
-  crossOriginEmbedderPolicy: false, // Required for Three.js
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // Required for YouTube embeds
-}));
+    crossOriginEmbedderPolicy: false, // Required for Three.js
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }, // Required for YouTube embeds
+  })
+);
 
 // Apply general rate limiter to all API routes
 app.use('/api', generalLimiter);
 
 // API Routes - apply stricter rate limiter to POST submissions
-app.use('/api/leaderboard', (req, res, next) => {
-  if (req.method === 'POST') {
-    return submissionLimiter(req, res, next);
-  }
-  next();
-}, leaderboardRoutes);
+app.use(
+  '/api/leaderboard',
+  (req, res, next) => {
+    if (req.method === 'POST') {
+      return submissionLimiter(req, res, next);
+    }
+    next();
+  },
+  leaderboardRoutes
+);
 
-app.use('/api/manual', (req, res, next) => {
-  if (req.method === 'POST') {
-    return submissionLimiter(req, res, next);
-  }
-  next();
-}, manualRoutes);
+app.use(
+  '/api/manual',
+  (req, res, next) => {
+    if (req.method === 'POST') {
+      return submissionLimiter(req, res, next);
+    }
+    next();
+  },
+  manualRoutes
+);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -135,7 +143,8 @@ app.get('/api/health', (_req, res) => {
 const aidemoPassword = process.env.AIDEMO_PASSWORD || '';
 const aidemoSessions = new Set<string>();
 
-function checkAidemoAuth(req: any, res: any, next: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function _checkAidemoAuth(req: any, res: any, next: any) {
   const sessionId = req.cookies?.aidemo_session;
   if (sessionId && aidemoSessions.has(sessionId)) {
     return next();

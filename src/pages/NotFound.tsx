@@ -15,12 +15,10 @@ export default function NotFound() {
         <div className="mb-4 flex justify-center">
           <AnimatedSnake size={80} />
         </div>
-        <h1 className="text-2xl font-bold text-white mb-2">
-          Page Not Found
-        </h1>
+        <h1 className="text-2xl font-bold text-white mb-2">Page Not Found</h1>
         <p className="text-gray-400 mb-8">
-          The snake slithered away and we couldn't find that page.
-          Maybe it's hiding in the 3D grid somewhere?
+          The snake slithered away and we couldn't find that page. Maybe it's hiding in the 3D grid
+          somewhere?
         </p>
 
         <div className="flex gap-3 justify-center">

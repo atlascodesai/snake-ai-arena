@@ -23,7 +23,9 @@ test.describe('Navigation', () => {
   test('should navigate to Play page via dropdown menu', async ({ page }) => {
     await page.goto('/');
     // Click the menu button (hamburger or menu icon)
-    const menuButton = page.locator('button:has-text("☰"), button[aria-label*="menu"], .menu-button').first();
+    const menuButton = page
+      .locator('button:has-text("☰"), button[aria-label*="menu"], .menu-button')
+      .first();
     if (await menuButton.isVisible()) {
       await menuButton.click();
       // Click Manual Play in dropdown
@@ -104,8 +106,8 @@ test.describe('Dashboard', () => {
     // Wait for page to load
     await page.waitForLoadState('domcontentloaded');
     // Leaderboard section should be present - look for table headers or leaderboard text
-    await expect(
-      page.locator('text=/rank|score|leaderboard/i').first()
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=/rank|score|leaderboard/i').first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 });

@@ -36,7 +36,11 @@ export class HeadlessGame {
   private rng: SeededRandom;
   private maxFrames: number;
 
-  constructor(algorithm: AlgorithmFunction, seed: number = Date.now(), maxFrames: number = MAX_FRAMES) {
+  constructor(
+    algorithm: AlgorithmFunction,
+    seed: number = Date.now(),
+    maxFrames: number = MAX_FRAMES
+  ) {
     this.algorithm = algorithm;
     this.rng = new SeededRandom(seed);
     this.maxFrames = maxFrames;
@@ -56,11 +60,9 @@ export class HeadlessGame {
   }
 
   private spawnFood(): Position {
-    const occupied = new Set(this.snake.map(p => posKey(p)));
+    const occupied = new Set(this.snake.map((p) => posKey(p)));
 
-    // If snake fills most of the grid, find any free position systematically
-    const gridSize = HALF_GRID * 2; // 16
-    const totalCells = gridSize * gridSize * gridSize; // 4096
+    // If snake fills most of the grid (16^3 = 4096 cells), find any free position
 
     // Try random positions first (fast path)
     let pos: Position;
@@ -112,7 +114,7 @@ export class HeadlessGame {
 
     // Get direction from algorithm
     const ctx: GameContext = {
-      snake: [...this.snake.map(p => ({ ...p }))],
+      snake: [...this.snake.map((p) => ({ ...p }))],
       food: { ...this.food },
       gridSize: GRID_SIZE,
       score: this.score,
@@ -157,7 +159,7 @@ export class HeadlessGame {
     const willEat = posEqual(newHead, this.food);
     const bodyToCheck = willEat ? this.snake : this.snake.slice(0, -1);
 
-    if (bodyToCheck.some(seg => posEqual(seg, newHead))) {
+    if (bodyToCheck.some((seg) => posEqual(seg, newHead))) {
       this.gameOver = true;
       this.deathReason = 'self collision';
       return this.getState();
@@ -193,7 +195,7 @@ export class HeadlessGame {
    */
   getState(): GameState {
     return {
-      snake: this.snake.map(p => ({ ...p })),
+      snake: this.snake.map((p) => ({ ...p })),
       food: { ...this.food },
       score: this.score,
       frame: this.frame,

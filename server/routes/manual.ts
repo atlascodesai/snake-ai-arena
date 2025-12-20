@@ -52,7 +52,13 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Validate length (must be finite integer within range)
-    if (typeof length !== 'number' || !Number.isFinite(length) || !Number.isInteger(length) || length < 3 || length > 4096) {
+    if (
+      typeof length !== 'number' ||
+      !Number.isFinite(length) ||
+      !Number.isInteger(length) ||
+      length < 3 ||
+      length > 4096
+    ) {
       return res.status(400).json({ error: 'Invalid length' });
     }
 
@@ -72,7 +78,13 @@ router.post('/', async (req: Request, res: Response) => {
 
     // Insert score with trimmed name
     const trimmedName = name.trim();
-    const result = await db.insertManualScore(trimmedName, score, length, validControlType, validViewMode);
+    const result = await db.insertManualScore(
+      trimmedName,
+      score,
+      length,
+      validControlType,
+      validViewMode
+    );
 
     // Get rank
     const rankResult = await db.getManualRank(score);

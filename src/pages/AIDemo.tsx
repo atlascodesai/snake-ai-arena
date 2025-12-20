@@ -15,8 +15,8 @@ export default function AIDemo() {
   // Check if already authenticated
   useEffect(() => {
     fetch('/api/aidemo/check')
-      .then(r => r.json())
-      .then(data => setAuthenticated(data.authenticated))
+      .then((r) => r.json())
+      .then((data) => setAuthenticated(data.authenticated))
       .catch(() => setAuthenticated(false));
   }, []);
 
@@ -75,9 +75,7 @@ export default function AIDemo() {
               className="w-full px-4 py-3 bg-dark-700 border border-dark-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-neon-green text-center"
             />
 
-            {error && (
-              <p className="text-red-400 text-sm text-center mt-2">{error}</p>
-            )}
+            {error && <p className="text-red-400 text-sm text-center mt-2">{error}</p>}
 
             <button
               type="submit"

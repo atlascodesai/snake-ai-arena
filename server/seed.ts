@@ -194,13 +194,10 @@ function algorithm(ctx) {
 console.log('🌱 Seeding database...');
 
 for (const algo of seedData) {
-  const linesOfCode = algo.code
-    .split('\n')
-    .filter(line => {
-      const trimmed = line.trim();
-      return trimmed.length > 0 && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
-    })
-    .length;
+  const linesOfCode = algo.code.split('\n').filter((line) => {
+    const trimmed = line.trim();
+    return trimmed.length > 0 && !trimmed.startsWith('//') && !trimmed.startsWith('/*');
+  }).length;
 
   queries.insertSubmission.run(
     algo.name,

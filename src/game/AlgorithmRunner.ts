@@ -3,7 +3,7 @@
  * Manages game execution with user algorithms
  */
 
-import { GameContext, Direction, GameState, AlgorithmFunction } from './types';
+import { GameState, AlgorithmFunction } from './types';
 import { HeadlessGame } from './HeadlessGame';
 import {
   wrapPosition,
@@ -49,7 +49,9 @@ export function compileAlgorithm(code: string): AlgorithmFunction {
 
     return fn as AlgorithmFunction;
   } catch (error) {
-    throw new Error(`Compilation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Compilation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 

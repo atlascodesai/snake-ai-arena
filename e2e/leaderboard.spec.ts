@@ -13,7 +13,9 @@ test.describe('Leaderboard Page', () => {
 
   test('should show tab options', async ({ page }) => {
     // There should be tabs to switch between AI and Manual leaderboards
-    const tabs = page.locator('button, [role="tab"]').filter({ hasText: /ai|algorithm|manual|human/i });
+    const tabs = page
+      .locator('button, [role="tab"]')
+      .filter({ hasText: /ai|algorithm|manual|human/i });
 
     // At least one type of tab should be present
     await expect(tabs.first()).toBeVisible({ timeout: 10000 });
@@ -34,7 +36,7 @@ test.describe('Leaderboard Page', () => {
     await page.waitForTimeout(2000); // Give time for API response
 
     // Check for table or any content
-    const hasTable = await page.locator('table, [role="table"]').count() > 0;
+    const hasTable = (await page.locator('table, [role="table"]').count()) > 0;
     const hasText = await page.locator('body').textContent();
     expect(hasTable || hasText?.length > 0).toBe(true);
   });

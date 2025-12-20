@@ -19,12 +19,12 @@ export const MAX_FRAMES = 25000;
  * All 6 possible movement directions in 3D
  */
 export const ALL_DIRECTIONS: Direction[] = [
-  { x: 1, y: 0, z: 0 },   // +X
-  { x: -1, y: 0, z: 0 },  // -X
-  { x: 0, y: 1, z: 0 },   // +Y
-  { x: 0, y: -1, z: 0 },  // -Y
-  { x: 0, y: 0, z: 1 },   // +Z
-  { x: 0, y: 0, z: -1 },  // -Z
+  { x: 1, y: 0, z: 0 }, // +X
+  { x: -1, y: 0, z: 0 }, // -X
+  { x: 0, y: 1, z: 0 }, // +Y
+  { x: 0, y: -1, z: 0 }, // -Y
+  { x: 0, y: 0, z: 1 }, // +Z
+  { x: 0, y: 0, z: -1 }, // -Z
 ];
 
 /**
@@ -90,11 +90,13 @@ export function createCollisionSet(positions: Position[]): Set<string> {
  * Get all 6 neighboring positions (wrapped)
  */
 export function getNeighbors(pos: Position): Position[] {
-  return ALL_DIRECTIONS.map(dir => wrapPosition({
-    x: pos.x + dir.x,
-    y: pos.y + dir.y,
-    z: pos.z + dir.z,
-  }));
+  return ALL_DIRECTIONS.map((dir) =>
+    wrapPosition({
+      x: pos.x + dir.x,
+      y: pos.y + dir.y,
+      z: pos.z + dir.z,
+    })
+  );
 }
 
 /**
@@ -111,9 +113,7 @@ export function findPathBFS(
   // Hard cap on nodes to prevent browser freeze (16^3 = 4096 max possible)
   const MAX_NODES = 500;
 
-  const queue: Array<{ pos: Position; path: Position[] }> = [
-    { pos: start, path: [] }
-  ];
+  const queue: Array<{ pos: Position; path: Position[] }> = [{ pos: start, path: [] }];
   const visited = new Set<string>([posKey(start)]);
 
   while (queue.length > 0) {
@@ -136,7 +136,7 @@ export function findPathBFS(
       visited.add(key);
       queue.push({
         pos: neighbor,
-        path: [...current.path, neighbor]
+        path: [...current.path, neighbor],
       });
     }
   }

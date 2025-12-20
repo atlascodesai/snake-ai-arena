@@ -54,7 +54,11 @@ export default function Editor() {
   const [showModal, setShowModal] = useState(false);
 
   const [gameState, setGameState] = useState<GameState>({
-    snake: [{ x: 0, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: -2, y: 0, z: 0 }],
+    snake: [
+      { x: 0, y: 0, z: 0 },
+      { x: -1, y: 0, z: 0 },
+      { x: -2, y: 0, z: 0 },
+    ],
     food: { x: 5, y: 0, z: 0 },
     score: 0,
     frame: 0,
@@ -108,12 +112,13 @@ export default function Editor() {
   // Load forked algorithm
   useEffect(() => {
     if (id) {
-      api.getSubmission(parseInt(id))
-        .then(submission => {
+      api
+        .getSubmission(parseInt(id))
+        .then((submission) => {
           setCode(submission.code);
           setAlgorithmName(`${submission.name} (fork)`);
         })
-        .catch(err => {
+        .catch((err) => {
           console.error('Failed to load submission:', err);
         });
     }
@@ -415,7 +420,6 @@ export default function Editor() {
       } catch (err) {
         console.error('Failed to fetch placement preview:', err);
       }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -436,7 +440,7 @@ export default function Editor() {
     setCountdown(3);
 
     countdownRef.current = window.setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev === null || prev <= 1) {
           // Countdown finished - start benchmark
           if (countdownRef.current) {
@@ -509,14 +513,14 @@ export default function Editor() {
   }, [navigate]);
 
   // Calculate live average
-  const liveAvg = liveScores.length > 0
-    ? Math.round(liveScores.reduce((a, b) => a + b, 0) / liveScores.length)
-    : 0;
+  const liveAvg =
+    liveScores.length > 0
+      ? Math.round(liveScores.reduce((a, b) => a + b, 0) / liveScores.length)
+      : 0;
 
   // Calculate improvement from previous run
-  const improvement = benchmarkResult && previousResult
-    ? benchmarkResult.avgScore - previousResult.avgScore
-    : null;
+  const improvement =
+    benchmarkResult && previousResult ? benchmarkResult.avgScore - previousResult.avgScore : null;
 
   // Mobile tab state
   const [mobileTab, setMobileTab] = useState<'code' | 'game'>('code');
@@ -573,9 +577,7 @@ export default function Editor() {
         <button
           onClick={() => setMobileTab('code')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${
-            mobileTab === 'code'
-              ? 'text-neon-green border-b-2 border-neon-green'
-              : 'text-gray-400'
+            mobileTab === 'code' ? 'text-neon-green border-b-2 border-neon-green' : 'text-gray-400'
           }`}
         >
           📝 Code
@@ -583,9 +585,7 @@ export default function Editor() {
         <button
           onClick={() => setMobileTab('game')}
           className={`flex-1 py-2 text-sm font-medium transition-colors ${
-            mobileTab === 'game'
-              ? 'text-neon-green border-b-2 border-neon-green'
-              : 'text-gray-400'
+            mobileTab === 'game' ? 'text-neon-green border-b-2 border-neon-green' : 'text-gray-400'
           }`}
         >
           🎮 Game
@@ -595,7 +595,9 @@ export default function Editor() {
       {/* Main content */}
       <main className="flex-1 flex min-h-0 overflow-hidden">
         {/* Code editor - 50% on desktop, full/hidden on mobile */}
-        <div className={`${mobileTab === 'code' ? 'flex' : 'hidden'} md:flex w-full md:w-1/2 flex-col border-r border-dark-700 min-h-0`}>
+        <div
+          className={`${mobileTab === 'code' ? 'flex' : 'hidden'} md:flex w-full md:w-1/2 flex-col border-r border-dark-700 min-h-0`}
+        >
           <div className="flex-1 min-h-0">
             <CodeEditor
               value={code}
@@ -620,7 +622,9 @@ export default function Editor() {
         </div>
 
         {/* Game preview panel - 50% on desktop, full/hidden on mobile */}
-        <div className={`${mobileTab === 'game' ? 'flex' : 'hidden'} md:flex w-full md:w-1/2 flex-col bg-dark-800 min-h-0 overflow-y-auto`}>
+        <div
+          className={`${mobileTab === 'game' ? 'flex' : 'hidden'} md:flex w-full md:w-1/2 flex-col bg-dark-800 min-h-0 overflow-y-auto`}
+        >
           {/* Live Stats Bar - compact */}
           <div className="flex-shrink-0 px-3 py-1.5 border-b border-dark-700 bg-dark-900/50">
             <div className="flex items-center justify-between text-xs">
@@ -651,9 +655,7 @@ export default function Editor() {
                 {isBenchmarking && (
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">GAME</span>
-                    <span className="font-mono font-bold text-neon-blue">
-                      {currentGameNum}/10
-                    </span>
+                    <span className="font-mono font-bold text-neon-blue">{currentGameNum}/10</span>
                   </div>
                 )}
 
@@ -668,9 +670,7 @@ export default function Editor() {
                 {/* Length */}
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">LEN</span>
-                  <span className="font-mono font-bold text-white">
-                    {gameState.snake.length}
-                  </span>
+                  <span className="font-mono font-bold text-white">{gameState.snake.length}</span>
                 </div>
 
                 {/* Frame - hide on mobile */}
@@ -708,9 +708,7 @@ export default function Editor() {
             {countdown !== null && (
               <div className="absolute inset-0 flex items-center justify-center bg-dark-900/80 backdrop-blur-sm z-10">
                 <div className="text-center">
-                  <div className="text-8xl font-bold text-neon-blue animate-pulse">
-                    {countdown}
-                  </div>
+                  <div className="text-8xl font-bold text-neon-blue animate-pulse">{countdown}</div>
                   <div className="text-gray-400 mt-4">Benchmark starting...</div>
                   {isFirstPerson && (
                     <div className="text-neon-pink mt-2 text-sm">FPV mode enabled</div>
@@ -775,7 +773,11 @@ export default function Editor() {
               )}
               <button
                 onClick={handleBenchmark}
-                disabled={isBenchmarking || countdown !== null || (!allowBenchmarkInterrupt && (isRunning || isPaused))}
+                disabled={
+                  isBenchmarking ||
+                  countdown !== null ||
+                  (!allowBenchmarkInterrupt && (isRunning || isPaused))
+                }
                 className="flex-1 px-3 py-1.5 bg-neon-blue text-dark-900 text-sm font-medium rounded hover:bg-neon-blue/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {countdown !== null ? (
@@ -814,17 +816,27 @@ export default function Editor() {
             <div className="px-2 pb-2 relative">
               <div className="bg-dark-700 rounded p-2 relative">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">Scoreboard</span>
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">
+                    Scoreboard
+                  </span>
                   {(isBenchmarking || benchmarkResult) && (
                     <div className="flex items-center gap-2 text-[10px]">
                       <span className="text-gray-500">
-                        Avg: <span className="text-neon-green font-bold">
-                          {benchmarkResult ? benchmarkResult.avgScore.toLocaleString() : liveAvg.toLocaleString()}
+                        Avg:{' '}
+                        <span className="text-neon-green font-bold">
+                          {benchmarkResult
+                            ? benchmarkResult.avgScore.toLocaleString()
+                            : liveAvg.toLocaleString()}
                         </span>
                       </span>
                       <span className="text-gray-500">
-                        Max: <span className="text-neon-blue font-bold">
-                          {benchmarkResult ? benchmarkResult.maxScore.toLocaleString() : (liveScores.length > 0 ? Math.max(...liveScores).toLocaleString() : '-')}
+                        Max:{' '}
+                        <span className="text-neon-blue font-bold">
+                          {benchmarkResult
+                            ? benchmarkResult.maxScore.toLocaleString()
+                            : liveScores.length > 0
+                              ? Math.max(...liveScores).toLocaleString()
+                              : '-'}
                         </span>
                       </span>
                     </div>
@@ -834,7 +846,7 @@ export default function Editor() {
                 {/* Score grid - compact, 5x2 layout */}
                 <div className="grid grid-cols-5 gap-0.5 relative">
                   {Array.from({ length: 10 }).map((_, i) => {
-                    const score = liveScores[i] ?? (benchmarkResult?.scores[i]);
+                    const score = liveScores[i] ?? benchmarkResult?.scores[i];
                     const prevScore = previousResult?.scores[i];
                     const isActive = isBenchmarking && i === currentGameNum - 1;
                     const isCompleted = score !== undefined;
@@ -851,13 +863,18 @@ export default function Editor() {
                         `}
                       >
                         <div className="text-[8px] text-gray-500">#{i + 1}</div>
-                        <div className={`font-bold ${isCompleted ? 'text-neon-green' : 'text-gray-600'}`}>
+                        <div
+                          className={`font-bold ${isCompleted ? 'text-neon-green' : 'text-gray-600'}`}
+                        >
                           {isCompleted ? score?.toLocaleString() : '-'}
                         </div>
                         {/* Show diff from previous run */}
                         {diff !== null && !isBenchmarking && (
-                          <div className={`text-[8px] ${diff >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {diff >= 0 ? '+' : ''}{diff}
+                          <div
+                            className={`text-[8px] ${diff >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                          >
+                            {diff >= 0 ? '+' : ''}
+                            {diff}
                           </div>
                         )}
                       </div>
@@ -876,7 +893,9 @@ export default function Editor() {
                           {benchmarkResult.avgScore.toLocaleString()}
                         </div>
                         {improvement !== null && (
-                          <div className={`text-[10px] ${improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          <div
+                            className={`text-[10px] ${improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                          >
                             {improvement >= 0 ? '▲' : '▼'} {Math.abs(improvement).toLocaleString()}
                           </div>
                         )}
@@ -910,40 +929,59 @@ export default function Editor() {
                     </div>
 
                     {/* Leaderboard context - compact */}
-                    {placementPreview && (placementPreview.above.length > 0 || placementPreview.below.length > 0) && (
-                      <div className="bg-dark-800 rounded p-1.5 text-[10px]">
-                        <div className="text-gray-500 text-[9px] uppercase mb-0.5">Leaderboard Preview</div>
-                        <div className="space-y-0">
-                          {/* Entries above */}
-                          {placementPreview.above.map((entry, i) => (
-                            <div key={`above-${i}`} className="flex justify-between text-gray-400">
-                              <span>#{entry.rank} {entry.name}</span>
-                              <span>{entry.avgScore.toLocaleString()}</span>
-                            </div>
-                          ))}
-                          {/* Your entry */}
-                          <div className="flex justify-between text-neon-green font-bold bg-neon-green/10 px-1 rounded">
-                            <span>#{placementPreview.projectedRank} Your Algorithm</span>
-                            <span>{benchmarkResult.avgScore.toLocaleString()}</span>
+                    {placementPreview &&
+                      (placementPreview.above.length > 0 || placementPreview.below.length > 0) && (
+                        <div className="bg-dark-800 rounded p-1.5 text-[10px]">
+                          <div className="text-gray-500 text-[9px] uppercase mb-0.5">
+                            Leaderboard Preview
                           </div>
-                          {/* Entries below */}
-                          {placementPreview.below.map((entry, i) => (
-                            <div key={`below-${i}`} className="flex justify-between text-gray-400">
-                              <span>#{entry.rank} {entry.name}</span>
-                              <span>{entry.avgScore.toLocaleString()}</span>
+                          <div className="space-y-0">
+                            {/* Entries above */}
+                            {placementPreview.above.map((entry, i) => (
+                              <div
+                                key={`above-${i}`}
+                                className="flex justify-between text-gray-400"
+                              >
+                                <span>
+                                  #{entry.rank} {entry.name}
+                                </span>
+                                <span>{entry.avgScore.toLocaleString()}</span>
+                              </div>
+                            ))}
+                            {/* Your entry */}
+                            <div className="flex justify-between text-neon-green font-bold bg-neon-green/10 px-1 rounded">
+                              <span>#{placementPreview.projectedRank} Your Algorithm</span>
+                              <span>{benchmarkResult.avgScore.toLocaleString()}</span>
                             </div>
-                          ))}
+                            {/* Entries below */}
+                            {placementPreview.below.map((entry, i) => (
+                              <div
+                                key={`below-${i}`}
+                                className="flex justify-between text-gray-400"
+                              >
+                                <span>
+                                  #{entry.rank} {entry.name}
+                                </span>
+                                <span>{entry.avgScore.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Previous run comparison */}
                     {previousResult && (
                       <div className="mt-1 text-[10px] text-gray-500 text-center">
-                        Previous: <span className="text-gray-400">{previousResult.avgScore.toLocaleString()} avg</span>
+                        Previous:{' '}
+                        <span className="text-gray-400">
+                          {previousResult.avgScore.toLocaleString()} avg
+                        </span>
                         {improvement !== null && (
-                          <span className={`ml-1 ${improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            ({improvement >= 0 ? '+' : ''}{improvement.toLocaleString()})
+                          <span
+                            className={`ml-1 ${improvement >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                          >
+                            ({improvement >= 0 ? '+' : ''}
+                            {improvement.toLocaleString()})
                           </span>
                         )}
                       </div>
@@ -964,11 +1002,7 @@ export default function Editor() {
       </main>
 
       {/* Submission modal */}
-      <SubmissionModal
-        isOpen={showModal}
-        onClose={handleModalClose}
-        result={submissionResult}
-      />
+      <SubmissionModal isOpen={showModal} onClose={handleModalClose} result={submissionResult} />
     </div>
   );
 }

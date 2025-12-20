@@ -5,7 +5,6 @@
 
 import { Position, Direction } from '../types';
 import { wrapPosition, posEqual } from '../utils';
-import type { ControlType } from '../../api/client';
 
 /**
  * Transform XZ direction based on camera angle for view-relative controls
@@ -86,19 +85,11 @@ export function getNewUpVector(
   }
 
   // If we pitched (up/down changed), the old forward becomes the new up (or negative)
-  if (
-    newDirection.x === oldUp.x &&
-    newDirection.y === oldUp.y &&
-    newDirection.z === oldUp.z
-  ) {
+  if (newDirection.x === oldUp.x && newDirection.y === oldUp.y && newDirection.z === oldUp.z) {
     // Pitched up: old forward direction becomes down, so new up is negative old forward
     return { x: -oldDirection.x, y: -oldDirection.y, z: -oldDirection.z };
   }
-  if (
-    newDirection.x === -oldUp.x &&
-    newDirection.y === -oldUp.y &&
-    newDirection.z === -oldUp.z
-  ) {
+  if (newDirection.x === -oldUp.x && newDirection.y === -oldUp.y && newDirection.z === -oldUp.z) {
     // Pitched down: old forward direction becomes up
     return oldDirection;
   }
@@ -110,17 +101,13 @@ export function getNewUpVector(
 /**
  * Check if moving in a direction would cause collision with snake body
  */
-export function wouldCollide(
-  head: Position,
-  direction: Direction,
-  snake: Position[]
-): boolean {
+export function wouldCollide(head: Position, direction: Direction, snake: Position[]): boolean {
   const newHead = wrapPosition({
     x: head.x + direction.x,
     y: head.y + direction.y,
     z: head.z + direction.z,
   });
-  return snake.slice(1).some(seg => posEqual(seg, newHead));
+  return snake.slice(1).some((seg) => posEqual(seg, newHead));
 }
 
 export interface FirstPersonHUDInfo {

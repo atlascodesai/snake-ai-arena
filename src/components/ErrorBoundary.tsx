@@ -42,11 +42,10 @@ export default class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-screen bg-dark-900 flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-6xl mb-4">💥</div>
-            <h1 className="text-2xl font-bold text-white mb-2">
-              Something went wrong
-            </h1>
+            <h1 className="text-2xl font-bold text-white mb-2">Something went wrong</h1>
             <p className="text-gray-400 mb-6">
-              The game encountered an unexpected error. This might be a bug in your algorithm code or a temporary issue.
+              The game encountered an unexpected error. This might be a bug in your algorithm code
+              or a temporary issue.
             </p>
 
             {this.state.error && (

@@ -58,7 +58,7 @@ describe('CONTROL_SCHEMES', () => {
 
   it('should have entries for all expected control types', () => {
     const expectedTypes = ['wasd-zx', 'wasd-qe', 'arrows-ws'];
-    expectedTypes.forEach(type => {
+    expectedTypes.forEach((type) => {
       expect(CONTROL_SCHEMES).toHaveProperty(type);
     });
   });
@@ -80,9 +80,9 @@ describe('Control scheme structure', () => {
     const { xzKeys } = DEFAULT_CONTROL_SCHEME;
 
     // Each direction should have both cases
-    expect(xzKeys.up.filter(k => k === 'w' || k === 'W').length).toBe(2);
-    expect(xzKeys.down.filter(k => k === 's' || k === 'S').length).toBe(2);
-    expect(xzKeys.left.filter(k => k === 'a' || k === 'A').length).toBe(2);
-    expect(xzKeys.right.filter(k => k === 'd' || k === 'D').length).toBe(2);
+    expect(xzKeys.up.filter((k) => k === 'w' || k === 'W').length).toBe(2);
+    expect(xzKeys.down.filter((k) => k === 's' || k === 'S').length).toBe(2);
+    expect(xzKeys.left.filter((k) => k === 'a' || k === 'A').length).toBe(2);
+    expect(xzKeys.right.filter((k) => k === 'd' || k === 'D').length).toBe(2);
   });
 });

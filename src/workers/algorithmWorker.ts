@@ -3,7 +3,7 @@
  * Runs user code in isolation with timeout protection
  */
 
-import { GameContext, Direction, Position } from '../game/types';
+import type { GameContext, Direction } from '../game/types';
 import {
   wrapPosition,
   posEqual,
@@ -64,7 +64,9 @@ function compileCode(code: string): (ctx: GameContext) => Direction | null {
 
     return fn;
   } catch (error) {
-    throw new Error(`Compilation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Compilation error: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -82,7 +84,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
         self.postMessage({ type: 'ready' } as WorkerResponse);
         break;
 
-      case 'tick':
+      case 'tick': {
         if (!userAlgorithm) {
           throw new Error('Algorithm not initialized');
         }
@@ -101,6 +103,7 @@ self.onmessage = (event: MessageEvent<WorkerMessage>) => {
 
         self.postMessage({ type: 'direction', direction } as WorkerResponse);
         break;
+      }
 
       default:
         throw new Error(`Unknown message type: ${type}`);

@@ -16,19 +16,27 @@ interface LeaderboardProps {
 
 function getRankEmoji(rank: number): string {
   switch (rank) {
-    case 1: return '🥇';
-    case 2: return '🥈';
-    case 3: return '🥉';
-    default: return `#${rank}`;
+    case 1:
+      return '🥇';
+    case 2:
+      return '🥈';
+    case 3:
+      return '🥉';
+    default:
+      return `#${rank}`;
   }
 }
 
 function getRankColor(rank: number): string {
   switch (rank) {
-    case 1: return 'text-yellow-400';
-    case 2: return 'text-gray-300';
-    case 3: return 'text-amber-600';
-    default: return 'text-gray-500';
+    case 1:
+      return 'text-yellow-400';
+    case 2:
+      return 'text-gray-300';
+    case 3:
+      return 'text-amber-600';
+    default:
+      return 'text-gray-500';
   }
 }
 
@@ -95,9 +103,10 @@ export default function Leaderboard({
               onClick={() => onSelect(submission.id)}
               className={`
                 relative p-3 rounded-lg cursor-pointer transition-all
-                ${isSelected
-                  ? 'bg-neon-green/20 border-2 border-neon-green shadow-lg shadow-neon-green/20'
-                  : 'bg-dark-700 border-2 border-transparent hover:border-dark-600 hover:bg-dark-600'
+                ${
+                  isSelected
+                    ? 'bg-neon-green/20 border-2 border-neon-green shadow-lg shadow-neon-green/20'
+                    : 'bg-dark-700 border-2 border-transparent hover:border-dark-600 hover:bg-dark-600'
                 }
               `}
             >
@@ -109,9 +118,7 @@ export default function Leaderboard({
               {/* Main content */}
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-white truncate pr-2">
-                    {submission.name}
-                  </div>
+                  <div className="font-semibold text-white truncate pr-2">{submission.name}</div>
                   <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
                     <span>{submission.linesOfCode} lines</span>
                     <span className="text-gray-500">{formatDate(submission.createdAt)}</span>
@@ -135,9 +142,10 @@ export default function Leaderboard({
                   }}
                   className={`
                     flex-1 px-3 py-1.5 rounded text-xs font-medium transition-colors
-                    ${isSelected
-                      ? 'bg-neon-green text-dark-900'
-                      : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
+                    ${
+                      isSelected
+                        ? 'bg-neon-green text-dark-900'
+                        : 'bg-dark-600 text-gray-300 hover:bg-dark-500'
                     }
                   `}
                 >
